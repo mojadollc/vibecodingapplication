@@ -101,6 +101,26 @@ async function main() {
     })
     console.log(`Upserted template: ${t.name}`)
   }
+
+  // AI Model configs — only current working models
+  const aiModels = [
+    { modelId: "gemini-2.5-flash",            label: "Gemini 2.5 Flash",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 0 },
+    { modelId: "gemini-2.5-pro",              label: "Gemini 2.5 Pro",       provider: "Google",    enabled: true,  isFast: false, sortOrder: 1 },
+    { modelId: "gpt-4o-mini",                 label: "GPT-4o Mini",          provider: "OpenAI",   enabled: false, isFast: true,  sortOrder: 2 },
+    { modelId: "gpt-4o",                      label: "GPT-4o",               provider: "OpenAI",   enabled: false, isFast: false, sortOrder: 3 },
+    { modelId: "openai/gpt-oss-20b",          label: "GPT OSS 20B (Groq)",   provider: "Groq",     enabled: true,  isFast: true,  sortOrder: 4 },
+    { modelId: "openai/gpt-oss-120b",         label: "GPT OSS 120B (Groq)",  provider: "Groq",     enabled: true,  isFast: false, sortOrder: 5 },
+    { modelId: "claude-3-5-sonnet-20241022",  label: "Claude 3.5 Sonnet",    provider: "Anthropic", enabled: false, isFast: false, sortOrder: 6 },
+  ]
+
+  for (const m of aiModels) {
+    await prisma.aiModelConfig.upsert({
+      where: { modelId: m.modelId },
+      update: m,
+      create: m,
+    })
+    console.log(`Upserted model: ${m.label}`)
+  }
 }
 
 main()

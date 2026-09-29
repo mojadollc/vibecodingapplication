@@ -34,15 +34,15 @@ const FILE_WRITING_MODEL: Record<string, string> = {
   "gpt-4o-mini": "gpt-4o-mini",
   "gemini-2.5-flash": "gemini-2.5-flash",
   "gemini-2.5-pro": "gemini-2.5-flash",
-  "llama3-70b-8192": "llama3-70b-8192",
-  "mixtral-8x7b-32768": "mixtral-8x7b-32768",
+  "openai/gpt-oss-20b": "openai/gpt-oss-20b",
+  "openai/gpt-oss-120b": "gemini-2.5-flash",
 }
 
 function getProvider(model: string): string {
   if (model.startsWith("gpt-")) return "openai"
   if (model.startsWith("gemini-")) return "gemini"
   if (model.startsWith("claude-")) return "anthropic"
-  if (["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"].includes(model)) return "groq"
+  if (model.startsWith("openai/gpt-oss") || ["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"].includes(model)) return "groq"
   return "openai"
 }
 
