@@ -57,7 +57,7 @@ export async function registerRoutes(app: FastifyInstance) {
           projectId,
           task.id,
           prompt,
-          messages.map((m) => ({ role: m.role.toLowerCase(), content: m.content })),
+          messages.map((m: { role: string; content: string }) => ({ role: m.role.toLowerCase(), content: m.content })),
           (step) => {
             steps.push(step)
             prisma.aiTask.update({
