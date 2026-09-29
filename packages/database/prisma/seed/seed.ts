@@ -9,7 +9,7 @@ async function main() {
       slug: "free",
       description: "Get started for free",
       priceMonthly: 0,
-      credits: 50,
+      credits: 0,
       maxProjects: 3,
       sortOrder: 0,
     },

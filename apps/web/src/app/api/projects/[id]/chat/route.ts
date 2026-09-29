@@ -10,6 +10,35 @@ const schema = z.object({
   conversationId: z.string().optional(),
 })
 
+const FREE_DAILY_LIMIT = 5
+const FREE_MONTHLY_LIMIT = 25
+
+// Estimate credit cost based on prompt complexity
+function estimateCost(prompt: string): number {
+  const len = prompt.trim().length
+  if (len < 50) return 0.5   // small tweak e.g. "change button color to red"
+  if (len < 150) return 1    // simple feature
+  if (len < 400) return 2    // medium feature
+  return 3                   // complex feature
+}
+
+function isNewDay(date: Date): boolean {
+  const now = new Date()
+  return (
+    now.getUTCFullYear() !== date.getUTCFullYear() ||
+    now.getUTCMonth() !== date.getUTCMonth() ||
+    now.getUTCDate() !== date.getUTCDate()
+  )
+}
+
+function isNewMonth(date: Date): boolean {
+  const now = new Date()
+  return (
+    now.getUTCFullYear() !== date.getUTCFullYear() ||
+    now.getUTCMonth() !== date.getUTCMonth()
+  )
+}
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth.api.getSession({ headers: headers() })
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -34,13 +63,67 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     conversation = await prisma.conversation.create({ data: { projectId: project.id } })
   }
 
-  // Check credits
-  const wallet = await prisma.creditWallet.findUnique({ where: { userId: session.user.id } })
-  if (!wallet || wallet.balance < 1) {
-    return NextResponse.json(
-      { error: "Insufficient credits. Please upgrade your plan." },
-      { status: 402 }
-    )
+  // Get active subscription to determine plan
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId: session.user.id, status: "ACTIVE" },
+    include: { plan: true },
+  })
+
+  const isFree = !subscription
+
+  // Get or create wallet
+  let wallet = await prisma.creditWallet.findUnique({ where: { userId: session.user.id } })
+  if (!wallet) {
+    wallet = await prisma.creditWallet.create({
+      data: {
+        userId: session.user.id,
+        balance: FREE_DAILY_LIMIT,
+        lifetimeCredits: FREE_DAILY_LIMIT,
+        dailyCredits: FREE_DAILY_LIMIT,
+        dailyCreditsDate: new Date(),
+        monthlyCreditsUsed: 0,
+      },
+    })
+  }
+
+  // Reset daily credits at 00:00 UTC for free users
+  if (isFree && isNewDay(wallet.dailyCreditsDate)) {
+    const resetMonthly = isNewMonth(wallet.dailyCreditsDate)
+    wallet = await prisma.creditWallet.update({
+      where: { userId: session.user.id },
+      data: {
+        balance: FREE_DAILY_LIMIT,
+        dailyCredits: FREE_DAILY_LIMIT,
+        dailyCreditsDate: new Date(),
+        monthlyCreditsUsed: resetMonthly ? 0 : wallet.monthlyCreditsUsed,
+      },
+    })
+  }
+
+  const cost = estimateCost(parsed.data.content)
+
+  // Free plan limits
+  if (isFree) {
+    if (wallet.monthlyCreditsUsed >= FREE_MONTHLY_LIMIT) {
+      return NextResponse.json(
+        { error: "Monthly limit of 25 credits reached. Upgrade your plan to continue." },
+        { status: 402 }
+      )
+    }
+    if (wallet.balance < cost) {
+      return NextResponse.json(
+        { error: `Not enough daily credits. You need ${cost} credits but have ${wallet.balance}. Resets at 00:00 UTC.` },
+        { status: 402 }
+      )
+    }
+  } else {
+    // Paid plan — use balance
+    if (wallet.balance < cost) {
+      return NextResponse.json(
+        { error: "Insufficient credits. Please top up or upgrade your plan." },
+        { status: 402 }
+      )
+    }
   }
 
   // Save user message
@@ -48,30 +131,34 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     data: { conversationId: conversation.id, role: "USER", content: parsed.data.content },
   })
 
-  // Deduct 1 credit
+  // Deduct credits
+  const costInt = Math.ceil(cost)
   await prisma.$transaction([
     prisma.creditWallet.update({
       where: { userId: session.user.id },
-      data: { balance: { decrement: 1 }, usedCredits: { increment: 1 } },
+      data: {
+        balance: { decrement: costInt },
+        usedCredits: { increment: costInt },
+        monthlyCreditsUsed: { increment: costInt },
+      },
     }),
     prisma.creditTransaction.create({
       data: {
         walletId: wallet.id,
         type: "DEBIT",
-        amount: 1,
-        balanceAfter: wallet.balance - 1,
-        description: "AI chat message",
+        amount: costInt,
+        balanceAfter: wallet.balance - costInt,
+        description: `AI build (${cost} credits)`,
       },
     }),
   ])
 
-  // Start orchestrator task (non-blocking)
+  // Start orchestrator task
   let taskId: string | null = null
   try {
     const result = await startAgentTask(project.id, parsed.data.content, conversation.id, project.aiModel ?? "gpt-4o")
     taskId = result.taskId
   } catch {
-    // Orchestrator not running — save placeholder message
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -82,5 +169,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ data: { userMessage, taskId: null } })
   }
 
-  return NextResponse.json({ data: { userMessage, taskId, conversationId: conversation.id } })
+  return NextResponse.json({ data: { userMessage, taskId, conversationId: conversation.id, creditCost: cost } })
 }
