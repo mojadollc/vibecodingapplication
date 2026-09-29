@@ -104,10 +104,10 @@ async function main() {
 
   // AI Model configs — only current working models
   const aiModels = [
-    // Google Gemini
-    { modelId: "gemini-2.5-flash",           label: "Gemini 2.5 Flash",          provider: "Google",    enabled: true,  isFast: true,  sortOrder: 0 },
-    { modelId: "gemini-2.5-flash-lite",      label: "Gemini 2.5 Flash Lite",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 1 },
-    { modelId: "gemini-2.5-pro",             label: "Gemini 2.5 Pro",            provider: "Google",    enabled: true,  isFast: false, sortOrder: 2 },
+    // Google Gemini — current models as of 2026
+    { modelId: "gemini-3.8-flash",           label: "Gemini 3.8 Flash",          provider: "Google",    enabled: true,  isFast: true,  sortOrder: 0 },
+    { modelId: "gemini-3.8-flash-lite",      label: "Gemini 3.8 Flash Lite",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 1 },
+    { modelId: "gemini-3.8-pro",             label: "Gemini 3.8 Pro",            provider: "Google",    enabled: true,  isFast: false, sortOrder: 2 },
     { modelId: "gemini-3-flash-preview",     label: "Gemini 3 Flash Preview",    provider: "Google",    enabled: true,  isFast: true,  sortOrder: 3 },
     { modelId: "gemini-3.5-flash",           label: "Gemini 3.5 Flash",          provider: "Google",    enabled: true,  isFast: true,  sortOrder: 4 },
     { modelId: "gemini-3.5-flash-lite",      label: "Gemini 3.5 Flash Lite",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 5 },
