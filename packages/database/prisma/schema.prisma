@@ -209,6 +209,15 @@ enum MessageRole {
   SYSTEM
 }
 
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
 model AiModelConfig {
   id        String   @id @default(cuid())
   modelId   String   @unique
@@ -265,9 +274,10 @@ model SubscriptionPlan {
   name           String
   slug           String   @unique
   description    String?
-  priceMonthly   Int      // in centavos (PHP)
+  priceMonthly   Int
   credits        Int
   maxProjects    Int      @default(5)
+  defaultModel   String   @default("gemini-2.0-flash")
   isActive       Boolean  @default(true)
   sortOrder      Int      @default(0)
   createdAt      DateTime @default(now())

@@ -97,6 +97,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const isFree = planSlug === "free"
   const allowedModels = getAllowedModels(planSlug)
 
+  // Read dynamic limits from SystemConfig
+  const configs = await prisma.systemConfig.findMany({
+    where: { key: { in: ["free_daily_credits", "free_monthly_credits", "credit_cost_small", "credit_cost_medium", "credit_cost_large"] } },
+  })
+  const cfg = Object.fromEntries(configs.map((c) => [c.key, c.value]))
+  const freeDailyLimit = Number(cfg.free_daily_credits ?? FREE_DAILY_LIMIT)
+  const freeMonthlyLimit = Number(cfg.free_monthly_credits ?? FREE_MONTHLY_LIMIT)
+
   // Determine which model to use — enforce plan restrictions
   let modelToUse = project.aiModel ?? DEFAULT_MODEL[planSlug]
   if (!allowedModels.includes(modelToUse)) {
@@ -126,8 +134,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     wallet = await prisma.creditWallet.update({
       where: { userId: session.user.id },
       data: {
-        balance: FREE_DAILY_LIMIT,
-        dailyCredits: FREE_DAILY_LIMIT,
+        balance: freeDailyLimit,
+        dailyCredits: freeDailyLimit,
         dailyCreditsDate: new Date(),
         monthlyCreditsUsed: resetMonthly ? 0 : wallet.monthlyCreditsUsed,
       },
@@ -138,9 +146,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Free plan limits
   if (isFree) {
-    if (wallet.monthlyCreditsUsed >= FREE_MONTHLY_LIMIT) {
+    if (wallet.monthlyCreditsUsed >= freeMonthlyLimit) {
       return NextResponse.json(
-        { error: "Monthly limit of 25 credits reached. Upgrade your plan to continue." },
+        { error: `Monthly limit of ${freeMonthlyLimit} credits reached. Upgrade your plan to continue.` },
         { status: 402 }
       )
     }

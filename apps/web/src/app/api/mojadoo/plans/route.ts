@@ -5,10 +5,18 @@ import { z } from "zod"
 
 const schema = z.object({
   planId: z.string(),
-  credits: z.number().int().positive().optional(),
+  credits: z.number().int().nonnegative().optional(),
   priceMonthly: z.number().int().nonnegative().optional(),
+  maxProjects: z.number().int().positive().optional(),
   isActive: z.boolean().optional(),
+  description: z.string().optional(),
+  defaultModel: z.string().optional(),
 })
+
+export async function GET() {
+  const plans = await prisma.subscriptionPlan.findMany({ orderBy: { sortOrder: "asc" } })
+  return NextResponse.json({ data: plans })
+}
 
 export async function PATCH(req: NextRequest) {
   const guard = await requireAdmin()
