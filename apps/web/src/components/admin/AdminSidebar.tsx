@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, CreditCard, DollarSign, Zap, Settings, ChevronLeft, KeyRound } from "lucide-react"
+import { LayoutDashboard, Users, CreditCard, DollarSign, Zap, Settings, ChevronLeft, KeyRound, BrainCircuit } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/mojadoo/payments", label: "Payments", icon: DollarSign },
   { href: "/mojadoo/plans", label: "Plans", icon: Settings },
   { href: "/mojadoo/usage", label: "AI Usage", icon: Zap },
+  { href: "/mojadoo/models", label: "AI Models", icon: BrainCircuit },
   { href: "/mojadoo/credentials", label: "Credentials", icon: KeyRound },
 ]
 

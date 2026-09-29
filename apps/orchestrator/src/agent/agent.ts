@@ -6,8 +6,6 @@ import { runCommand } from "../tools/shell.js"
 import { gitCommit, gitInit } from "../tools/git.js"
 import { prisma } from "@mojadoo/database"
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
 const MAX_ITERATIONS = 30
 
 export interface AgentStep {
@@ -38,6 +36,37 @@ Rules:
 - Fix ALL build errors before calling task_complete
 - Never call task_complete if the build failed`
 
+function getProvider(model: string): string {
+  if (model.startsWith("gpt-")) return "openai"
+  if (model.startsWith("gemini-")) return "gemini"
+  if (model.startsWith("claude-")) return "anthropic"
+  if (["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"].includes(model)) return "groq"
+  return "openai"
+}
+
+function buildClient(provider: string) {
+  switch (provider) {
+    case "gemini":
+      return new OpenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      })
+    case "groq":
+      return new OpenAI({
+        apiKey: process.env.GROQ_API_KEY,
+        baseURL: "https://api.groq.com/openai/v1",
+      })
+    case "anthropic":
+      return new OpenAI({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        baseURL: "https://api.anthropic.com/v1/",
+        defaultHeaders: { "anthropic-version": "2023-06-01" },
+      })
+    default:
+      return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  }
+}
+
 export async function runAgent(
   projectId: string,
   taskId: string,
@@ -48,13 +77,12 @@ export async function runAgent(
 ): Promise<string> {
   await ensureWorkspace(projectId)
 
-  // Check if this is a new project (no files yet)
   const existingFiles = await listFiles(projectId)
   const isNewProject = existingFiles.length === 0
+  if (isNewProject) await gitInit(projectId)
 
-  if (isNewProject) {
-    await gitInit(projectId)
-  }
+  const provider = getProvider(model)
+  const client = buildClient(provider)
 
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -71,14 +99,10 @@ export async function runAgent(
   while (iterations < MAX_ITERATIONS) {
     iterations++
 
-    await prisma.aiTask.update({
-      where: { id: taskId },
-      data: { status: "RUNNING" },
-    })
-
+    await prisma.aiTask.update({ where: { id: taskId }, data: { status: "RUNNING" } })
     onStep({ type: "thinking", message: "Thinking..." })
 
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model,
       messages,
       tools,
@@ -87,16 +111,13 @@ export async function runAgent(
 
     const choice = response.choices[0]
     const assistantMessage = choice.message
-
     messages.push(assistantMessage)
 
-    // No tool calls — AI gave a plain text response
     if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
       finalSummary = assistantMessage.content ?? "Done"
       break
     }
 
-    // Execute each tool call
     for (const toolCall of assistantMessage.tool_calls) {
       const fnName = toolCall.function.name
       const args = JSON.parse(toolCall.function.arguments) as Record<string, string>
@@ -108,7 +129,6 @@ export async function runAgent(
       try {
         if (fnName === "create_file") {
           await createFile(projectId, args.path, args.content)
-          // Sync to DB
           await prisma.projectFile.upsert({
             where: { projectId_path: { projectId, path: args.path } },
             update: { content: args.content },
@@ -138,16 +158,9 @@ export async function runAgent(
 
         } else if (fnName === "task_complete") {
           finalSummary = args.summary
-          // Commit the final state
           await gitCommit(projectId, `feat: ${prompt.slice(0, 72)}`)
-          await prisma.project.update({
-            where: { id: projectId },
-            data: { status: "RUNNING" },
-          })
-          await prisma.aiTask.update({
-            where: { id: taskId },
-            data: { status: "DONE" },
-          })
+          await prisma.project.update({ where: { id: projectId }, data: { status: "RUNNING" } })
+          await prisma.aiTask.update({ where: { id: taskId }, data: { status: "DONE" } })
           onStep({ type: "done", message: finalSummary })
           return finalSummary
         }
@@ -158,16 +171,10 @@ export async function runAgent(
       }
 
       onStep({ type: "tool_result", message: result.slice(0, 200), tool: fnName, result })
-
-      messages.push({
-        role: "tool",
-        tool_call_id: toolCall.id,
-        content: result,
-      })
+      messages.push({ role: "tool", tool_call_id: toolCall.id, content: result })
     }
   }
 
-  // Exceeded max iterations
   await prisma.aiTask.update({
     where: { id: taskId },
     data: { status: "FAILED", error: "Max iterations reached" },

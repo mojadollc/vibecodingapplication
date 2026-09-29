@@ -1,15 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Cpu, ChevronDown, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export const AI_MODELS = [
-  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", fast: false },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", fast: true },
-  { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", provider: "Anthropic", fast: false },
-  { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro", provider: "Google", fast: false },
-] as const
+interface AiModel {
+  modelId: string
+  label: string
+  provider: string
+  isFast: boolean
+}
 
 interface Props {
   projectId: string
@@ -17,11 +17,18 @@ interface Props {
 }
 
 export default function ModelSelector({ projectId, currentModel }: Props) {
+  const [models, setModels] = useState<AiModel[]>([])
   const [selected, setSelected] = useState(currentModel)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const current = AI_MODELS.find((m) => m.id === selected) ?? AI_MODELS[0]
+  useEffect(() => {
+    fetch("/api/mojadoo/models")
+      .then((r) => r.json())
+      .then((d) => setModels(d.data ?? []))
+  }, [])
+
+  const current = models.find((m) => m.modelId === selected) ?? models[0]
 
   async function selectModel(modelId: string) {
     setSaving(true)
@@ -35,6 +42,8 @@ export default function ModelSelector({ projectId, currentModel }: Props) {
     setSaving(false)
   }
 
+  if (!models.length) return null
+
   return (
     <div className="relative">
       <button
@@ -42,18 +51,18 @@ export default function ModelSelector({ projectId, currentModel }: Props) {
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs hover:bg-muted transition-colors"
       >
         <Cpu className="w-3 h-3 text-muted-foreground" />
-        <span className={saving ? "opacity-50" : ""}>{current.label}</span>
+        <span className={saving ? "opacity-50" : ""}>{current?.label ?? "Select model"}</span>
         <ChevronDown className="w-3 h-3 text-muted-foreground" />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full mt-1 right-0 z-20 bg-card border rounded-lg shadow-lg w-52 py-1">
-            {AI_MODELS.map((model) => (
+          <div className="absolute top-full mt-1 right-0 z-20 bg-card border rounded-lg shadow-lg w-56 py-1">
+            {models.map((model) => (
               <button
-                key={model.id}
-                onClick={() => selectModel(model.id)}
+                key={model.modelId}
+                onClick={() => selectModel(model.modelId)}
                 className="flex items-center justify-between w-full px-3 py-2 text-xs hover:bg-muted text-left"
               >
                 <div>
@@ -61,10 +70,10 @@ export default function ModelSelector({ projectId, currentModel }: Props) {
                   <p className="text-muted-foreground">{model.provider}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {model.fast && (
+                  {model.isFast && (
                     <span className="text-xs bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded">Fast</span>
                   )}
-                  {selected === model.id && <Check className="w-3 h-3 text-primary" />}
+                  {selected === model.modelId && <Check className="w-3 h-3 text-primary" />}
                 </div>
               </button>
             ))}

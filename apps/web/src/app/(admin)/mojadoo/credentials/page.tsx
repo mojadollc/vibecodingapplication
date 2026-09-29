@@ -4,7 +4,10 @@ import { useState, useEffect } from "react"
 import { Save, Eye, EyeOff, RefreshCw } from "lucide-react"
 
 const FIELDS = [
-  { key: "OPENAI_API_KEY", label: "OpenAI API Key", group: "AI" },
+  { key: "OPENAI_API_KEY", label: "OpenAI API Key", group: "AI Keys" },
+  { key: "GEMINI_API_KEY", label: "Google Gemini API Key", group: "AI Keys" },
+  { key: "GROQ_API_KEY", label: "Groq API Key", group: "AI Keys" },
+  { key: "ANTHROPIC_API_KEY", label: "Anthropic API Key", group: "AI Keys" },
   { key: "GITHUB_CLIENT_ID", label: "GitHub Client ID", group: "GitHub OAuth" },
   { key: "GITHUB_CLIENT_SECRET", label: "GitHub Client Secret", group: "GitHub OAuth" },
   { key: "XENDIT_SECRET_KEY", label: "Xendit Secret Key", group: "Payments" },

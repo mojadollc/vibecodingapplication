@@ -8,6 +8,9 @@ const ENV_PATH = path.resolve(process.cwd(), ".env.local")
 
 const ALLOWED_KEYS = [
   "OPENAI_API_KEY",
+  "GEMINI_API_KEY",
+  "GROQ_API_KEY",
+  "ANTHROPIC_API_KEY",
   "GITHUB_CLIENT_ID",
   "GITHUB_CLIENT_SECRET",
   "XENDIT_SECRET_KEY",
@@ -67,11 +70,15 @@ export async function POST(req: NextRequest) {
   const existing = fs.existsSync(ENV_PATH) ? parseEnv(fs.readFileSync(ENV_PATH, "utf-8")) : {}
   fs.writeFileSync(ENV_PATH, buildEnv(existing, safe), "utf-8")
 
-  // Also update orchestrator .env
+  // Also update orchestrator .env with all AI keys
   const orchEnvPath = path.resolve(process.cwd(), "../../apps/orchestrator/.env")
-  if (fs.existsSync(orchEnvPath) && safe.OPENAI_API_KEY) {
+  if (fs.existsSync(orchEnvPath)) {
     const orchEnv = parseEnv(fs.readFileSync(orchEnvPath, "utf-8"))
-    fs.writeFileSync(orchEnvPath, buildEnv(orchEnv, { OPENAI_API_KEY: safe.OPENAI_API_KEY }), "utf-8")
+    const aiKeys: Record<string, string> = {}
+    for (const k of ["OPENAI_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"]) {
+      if (safe[k]) aiKeys[k] = safe[k]
+    }
+    fs.writeFileSync(orchEnvPath, buildEnv(orchEnv, aiKeys), "utf-8")
   }
 
   // Restart both PM2 processes

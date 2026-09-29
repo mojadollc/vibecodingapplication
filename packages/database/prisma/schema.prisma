@@ -209,6 +209,20 @@ enum MessageRole {
   SYSTEM
 }
 
+model AiModelConfig {
+  id        String   @id @default(cuid())
+  modelId   String   @unique
+  label     String
+  provider  String
+  enabled   Boolean  @default(false)
+  isFast    Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_model_configs")
+}
+
 model CreditWallet {
   id                  String    @id @default(cuid())
   userId              String    @unique
