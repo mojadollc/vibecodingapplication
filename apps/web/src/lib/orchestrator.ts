@@ -6,13 +6,17 @@ const headers = {
   "x-orchestrator-secret": ORCHESTRATOR_SECRET,
 }
 
-export async function startAgentTask(projectId: string, prompt: string, conversationId: string, model = "gpt-4o") {
+export async function startAgentTask(projectId: string, prompt: string, conversationId: string, model = "gemini-2.0-flash") {
   const res = await fetch(`${ORCHESTRATOR_URL}/run`, {
     method: "POST",
     headers,
     body: JSON.stringify({ projectId, prompt, conversationId, model }),
   })
-  if (!res.ok) throw new Error(`Orchestrator error: ${res.status}`)
+  if (!res.ok) {
+    let body = ""
+    try { body = await res.text() } catch {}
+    throw new Error(`Orchestrator ${res.status}: ${body || "no body"}`)
+  }
   return res.json() as Promise<{ taskId: string }>
 }
 

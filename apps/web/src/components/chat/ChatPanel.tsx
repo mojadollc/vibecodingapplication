@@ -166,9 +166,28 @@ export default function ChatPanel({ project, conversation, initialPrompt, onFile
 
   const pollTask = useCallback(
     (taskId: string, assistantMsgId: string) => {
+      let attempts = 0
       pollingRef.current = setInterval(async () => {
+        attempts++
         try {
           const res = await fetch(`/api/projects/${project.id}/task?taskId=${taskId}`)
+
+          if (!res.ok) {
+            // Stop polling on persistent errors
+            if (attempts > 3) {
+              clearInterval(pollingRef.current!)
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, content: `Error ${res.status}: Could not track build progress. Check if the AI agent is running.`, isStreaming: false }
+                    : m
+                )
+              )
+              setSending(false)
+            }
+            return
+          }
+
           const json = await res.json()
           if (!json.data) return
 
@@ -177,7 +196,7 @@ export default function ChatPanel({ project, conversation, initialPrompt, onFile
 
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMsgId ? { ...m, steps, isStreaming: task.status === "RUNNING" } : m
+              m.id === assistantMsgId ? { ...m, steps, isStreaming: task.status === "RUNNING" || task.status === "PENDING" } : m
             )
           )
 
@@ -185,12 +204,12 @@ export default function ChatPanel({ project, conversation, initialPrompt, onFile
             clearInterval(pollingRef.current!)
 
             const lastDone = [...steps].reverse().find((s: AgentStep) => s.type === "done")
-            const summary = lastDone?.message ?? (task.status === "FAILED" ? task.error : "Done")
+            const summary = lastDone?.message ?? (task.status === "FAILED" ? (task.error ?? "Build failed") : "Done")
 
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantMsgId
-                  ? { ...m, content: summary ?? "Done", steps, isStreaming: false }
+                  ? { ...m, content: summary, steps, isStreaming: false }
                   : m
               )
             )
@@ -200,8 +219,10 @@ export default function ChatPanel({ project, conversation, initialPrompt, onFile
             if (projectStatus?.status) onProjectStatusChanged?.(projectStatus.status)
           }
         } catch {
-          clearInterval(pollingRef.current!)
-          setSending(false)
+          if (attempts > 5) {
+            clearInterval(pollingRef.current!)
+            setSending(false)
+          }
         }
       }, 1500)
     },

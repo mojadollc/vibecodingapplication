@@ -199,15 +199,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     const result = await startAgentTask(project.id, parsed.data.content, conversation.id, modelToUse)
     taskId = result.taskId
-  } catch {
-    await prisma.message.create({
+  } catch (err: any) {
+    // Refund credits since task never started
+    await prisma.creditWallet.update({
+      where: { userId: session.user.id },
       data: {
-        conversationId: conversation.id,
-        role: "ASSISTANT",
-        content: "Orchestrator is not running. Please contact support.",
+        balance: { increment: costInt },
+        usedCredits: { decrement: costInt },
+        monthlyCreditsUsed: { decrement: costInt },
       },
     })
-    return NextResponse.json({ data: { userMessage, taskId: null } })
+    return NextResponse.json(
+      { error: `Could not reach AI agent: ${err.message}. Please try again.` },
+      { status: 503 }
+    )
+  }
+
+  if (!taskId) {
+    return NextResponse.json(
+      { error: "AI agent did not return a task ID. Please try again." },
+      { status: 503 }
+    )
   }
 
   return NextResponse.json({ data: { userMessage, taskId, conversationId: conversation.id, creditCost: cost, model: modelToUse } })
