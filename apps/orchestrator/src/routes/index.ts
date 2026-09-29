@@ -23,7 +23,10 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     const parsed = runSchema.safeParse(req.body)
-    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    if (!parsed.success) {
+      app.log.error({ body: req.body, errors: parsed.error.flatten() }, "Validation failed")
+      return reply.status(400).send({ error: parsed.error.flatten() })
+    }
 
     const { projectId, prompt, conversationId, model } = parsed.data
 

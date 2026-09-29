@@ -72,7 +72,7 @@ function buildClient(provider: string): OpenAI {
 }
 
 async function scaffoldBase(projectId: string, onStep: StepCallback) {
-  onStep({ type: "thinking", message: "Scaffolding beautiful base project..." })
+  onStep({ type: "thinking", message: "Setting up project structure..." })
   for (const [filePath, content] of Object.entries(BASE_SCAFFOLD)) {
     await createFile(projectId, filePath, content)
     await prisma.projectFile.upsert({
@@ -80,10 +80,11 @@ async function scaffoldBase(projectId: string, onStep: StepCallback) {
       update: { content },
       create: { projectId, path: filePath, content },
     })
+    onStep({ type: "tool_result", message: `\u2713 ${filePath}`, tool: "create_file" })
   }
-  onStep({ type: "tool_call", message: "Installing dependencies...", tool: "run_command" })
+  onStep({ type: "tool_call", message: "Installing dependencies (this may take a minute)...", tool: "run_command" })
   await runCommand(projectId, "npm install --legacy-peer-deps")
-  onStep({ type: "tool_result", message: "Base scaffold ready", tool: "run_command" })
+  onStep({ type: "tool_result", message: "\u2713 Dependencies installed", tool: "run_command" })
 }
 
 export async function runAgent(
@@ -129,9 +130,8 @@ export async function runAgent(
     iterations++
 
     await prisma.aiTask.update({ where: { id: taskId }, data: { status: "RUNNING" } })
-    onStep({ type: "thinking", message: "Thinking..." })
+    onStep({ type: "thinking", message: iterations === 1 ? "Analyzing your request..." : `Thinking... (step ${iterations})` })
 
-    // Use primary model for planning decisions
     const response = await primaryClient.chat.completions.create({
       model,
       messages,
@@ -152,13 +152,13 @@ export async function runAgent(
       const fnName = toolCall.function.name
       const args = JSON.parse(toolCall.function.arguments) as Record<string, string>
 
-      onStep({ type: "tool_call", message: `Calling ${fnName}`, tool: fnName, args })
-
       let result = ""
 
       try {
         if (fnName === "create_file") {
-          // Use cheaper model to actually write file content if hybrid strategy applies
+          const shortPath = args.path.split("/").slice(-2).join("/")
+          onStep({ type: "tool_call", message: `Writing ${shortPath}`, tool: fnName })
+
           let fileContent = args.content
           if (fileWriteModel !== model && fileWriteCount < 20) {
             fileWriteCount++
@@ -189,29 +189,41 @@ export async function runAgent(
             create: { projectId, path: args.path, content: fileContent },
           })
           result = `Created ${args.path}`
+          onStep({ type: "tool_result", message: `✓ ${shortPath}`, tool: fnName })
 
         } else if (fnName === "read_file") {
+          onStep({ type: "tool_call", message: `Reading ${args.path.split("/").slice(-1)[0]}`, tool: fnName })
           result = await readFile(projectId, args.path)
+          onStep({ type: "tool_result", message: `Read ${args.path.split("/").slice(-1)[0]}`, tool: fnName })
 
         } else if (fnName === "list_files") {
+          onStep({ type: "tool_call", message: "Scanning project files...", tool: fnName })
           const files = await listFiles(projectId, args.subDir)
           result = files.length > 0 ? files.join("\n") : "No files yet"
+          onStep({ type: "tool_result", message: `Found ${files.length} files`, tool: fnName })
 
         } else if (fnName === "run_command") {
-          onStep({ type: "tool_call", message: `Running: ${args.command}`, tool: "run_command" })
+          const shortCmd = args.command.length > 50 ? args.command.slice(0, 50) + "..." : args.command
+          onStep({ type: "tool_call", message: `Running: ${shortCmd}`, tool: fnName })
           const cmdResult = await runCommand(projectId, args.command)
           result = cmdResult.stdout || cmdResult.stderr || "Command completed"
           if (cmdResult.exitCode !== 0) {
             result = `ERROR (exit ${cmdResult.exitCode}):\n${cmdResult.stderr}\n${cmdResult.stdout}`
+            onStep({ type: "error", message: `Command failed: ${shortCmd}` })
+          } else {
+            onStep({ type: "tool_result", message: `✓ ${shortCmd}`, tool: fnName })
           }
 
         } else if (fnName === "delete_file") {
+          onStep({ type: "tool_call", message: `Deleting ${args.path.split("/").slice(-1)[0]}`, tool: fnName })
           await deleteFile(projectId, args.path)
           await prisma.projectFile.deleteMany({ where: { projectId, path: args.path } })
           result = `Deleted ${args.path}`
+          onStep({ type: "tool_result", message: `Deleted ${args.path.split("/").slice(-1)[0]}`, tool: fnName })
 
         } else if (fnName === "task_complete") {
           finalSummary = args.summary
+          onStep({ type: "thinking", message: "Committing changes..." })
           await gitCommit(projectId, `feat: ${prompt.slice(0, 72)}`)
           await prisma.project.update({ where: { id: projectId }, data: { status: "RUNNING" } })
           await prisma.aiTask.update({ where: { id: taskId }, data: { status: "DONE" } })
@@ -221,10 +233,9 @@ export async function runAgent(
 
       } catch (err: any) {
         result = `Tool error: ${err.message}`
-        onStep({ type: "error", message: result })
+        onStep({ type: "error", message: `Error: ${err.message}` })
       }
 
-      onStep({ type: "tool_result", message: result.slice(0, 200), tool: fnName, result })
       messages.push({ role: "tool", tool_call_id: toolCall.id, content: result })
     }
   }

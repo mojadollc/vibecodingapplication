@@ -6,7 +6,7 @@ import { registerRoutes } from "./routes/index.js"
 async function main() {
   const app = Fastify({ logger: true })
 
-  await app.register(cors, { origin: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000" })
+  await app.register(cors, { origin: true })
 
   await registerRoutes(app)
 
