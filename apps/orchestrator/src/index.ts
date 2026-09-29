@@ -10,7 +10,7 @@ async function main() {
 
   await registerRoutes(app)
 
-  const port = Number(process.env.ORCHESTRATOR_PORT ?? 3001)
+  const port = Number(process.env.ORCHESTRATOR_PORT ?? 3003)
 
   try {
     await app.listen({ port, host: "0.0.0.0" })

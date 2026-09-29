@@ -1,4 +1,4 @@
-const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL ?? "http://localhost:3001"
+const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL ?? "http://localhost:3003"
 const ORCHESTRATOR_SECRET = process.env.ORCHESTRATOR_SECRET ?? "orchestrator-internal-secret"
 
 const headers = {
