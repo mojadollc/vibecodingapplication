@@ -1,21 +1,23 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Coins, X, Zap, TrendingUp } from "lucide-react"
-import { useState } from "react"
+import { Coins, X, Zap, TrendingUp, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+
+interface Plan {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  priceMonthly: number
+  credits: number
+}
 
 interface Props {
   onClose: () => void
   errorMessage?: string
   currentPlan?: string
 }
-
-const PLANS = [
-  { name: "Starter", slug: "starter", price: "₱199/mo", credits: "200 credits", desc: "For students & beginners" },
-  { name: "Builder", slug: "builder", price: "₱499/mo", credits: "1,000 credits", popular: true, desc: "For freelancers shipping projects" },
-  { name: "Pro", slug: "pro", price: "₱999/mo", credits: "3,000 credits", desc: "For professionals, unlimited projects" },
-  { name: "Agency", slug: "agency", price: "₱2,499/mo", credits: "10,000 credits", desc: "For teams & agencies at scale" },
-]
 
 const TOPUPS = [
   { label: "100 credits", price: "₱99", credits: 100 },
@@ -26,8 +28,20 @@ const TOPUPS = [
 export default function UpgradeModal({ onClose, errorMessage, currentPlan }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<"upgrade" | "topup">("upgrade")
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
 
   const isFree = !currentPlan || currentPlan === "free"
+
+  useEffect(() => {
+    fetch("/api/billing/plans")
+      .then((r) => r.json())
+      .then((json) => {
+        const paid = (json.data as Plan[]).filter((p) => p.priceMonthly > 0)
+        setPlans(paid)
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -77,29 +91,44 @@ export default function UpgradeModal({ onClose, errorMessage, currentPlan }: Pro
         <div className="p-6">
           {tab === "upgrade" ? (
             <div className="space-y-2.5">
-              {PLANS.map((plan) => (
-                <div
-                  key={plan.slug}
-                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${
-                    plan.popular ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {plan.popular && <Zap className="w-3.5 h-3.5 text-primary shrink-0" />}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{plan.name}</span>
-                        {plan.popular && (
-                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Popular</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{plan.desc}</p>
-                      <p className="text-xs text-muted-foreground">{plan.credits}</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold">{plan.price}</span>
+              {loading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
-              ))}
+              ) : (
+                plans.map((plan) => {
+                  const isPopular = plan.slug === "pro"
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${
+                        isPopular ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {isPopular && <Zap className="w-3.5 h-3.5 text-primary shrink-0" />}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">{plan.name}</span>
+                            {isPopular && (
+                              <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Popular</span>
+                            )}
+                          </div>
+                          {plan.description && (
+                            <p className="text-xs text-muted-foreground">{plan.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {plan.credits >= 999999 ? "Unlimited credits" : `${plan.credits.toLocaleString()} credits/mo`}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold shrink-0 ml-2">
+                        ₱{(plan.priceMonthly / 100).toLocaleString()}/mo
+                      </span>
+                    </div>
+                  )
+                })
+              )}
             </div>
           ) : (
             <div className="space-y-2.5">
