@@ -3,6 +3,13 @@ import { PrismaClient } from "@prisma/client"
 const prisma = new PrismaClient()
 
 async function main() {
+  // Ensure admin user
+  await prisma.user.updateMany({
+    where: { email: "mojado.llc@gmail.com" },
+    data: { role: "ADMIN" },
+  })
+  console.log("Promoted mojado.llc@gmail.com to ADMIN")
+
   const plans = [
     {
       name: "Free",
