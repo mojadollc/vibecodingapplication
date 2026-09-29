@@ -108,9 +108,13 @@ async function main() {
     { modelId: "gemini-3.5-flash",       label: "Gemini 3.5 Flash",       provider: "Google",    enabled: true,  isFast: true,  sortOrder: 0 },
     { modelId: "gemini-3.5-flash-lite",  label: "Gemini 3.5 Flash Lite",  provider: "Google",    enabled: true,  isFast: true,  sortOrder: 1 },
     { modelId: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview",  provider: "Google",    enabled: true,  isFast: true,  sortOrder: 2 },
-    // Groq — backup
+    // Groq — only these 2 support tool calling
     { modelId: "openai/gpt-oss-20b",     label: "GPT OSS 20B (Groq)",     provider: "Groq",      enabled: true,  isFast: true,  sortOrder: 3 },
     { modelId: "openai/gpt-oss-120b",    label: "GPT OSS 120B (Groq)",    provider: "Groq",      enabled: true,  isFast: false, sortOrder: 4 },
+    // Groq — no tool calling support, disabled
+    { modelId: "llama3-70b-8192",        label: "Llama 3 70B (Groq)",     provider: "Groq",      enabled: false, isFast: true,  sortOrder: 5 },
+    { modelId: "mixtral-8x7b-32768",     label: "Mixtral 8x7B (Groq)",    provider: "Groq",      enabled: false, isFast: true,  sortOrder: 6 },
+    { modelId: "gemma2-9b-it",           label: "Gemma 2 9B (Groq)",      provider: "Groq",      enabled: false, isFast: true,  sortOrder: 7 },
     // OpenAI — paid plans only
     { modelId: "gpt-4o-mini",            label: "GPT-4o Mini",            provider: "OpenAI",    enabled: false, isFast: true,  sortOrder: 5 },
     { modelId: "gpt-4o",                 label: "GPT-4o",                 provider: "OpenAI",    enabled: false, isFast: false, sortOrder: 6 },
