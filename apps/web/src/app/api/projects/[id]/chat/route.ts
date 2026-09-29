@@ -15,9 +15,9 @@ const FREE_MONTHLY_LIMIT = 25
 
 // Model tiers — which plans can use which models
 const FREE_MODELS = [
+  "openai/gpt-oss-20b", "openai/gpt-oss-120b",
   "gemini-3.8-flash", "gemini-3.8-flash-lite", "gemini-3.8-pro",
   "gemini-3-flash-preview", "gemini-3.5-flash", "gemini-3.5-flash-lite",
-  "openai/gpt-oss-20b",
 ]
 const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini", "openai/gpt-oss-120b"]
 const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022"]
@@ -25,8 +25,8 @@ const AGENCY_MODELS = PRO_MODELS
 
 // Default model per plan — matches PLAN_DEFAULT_MODELS in agent
 const DEFAULT_MODEL: Record<string, string> = {
-  free:    "gemini-3.8-flash",
-  starter: "gemini-3.8-flash",
+  free:    "openai/gpt-oss-20b",
+  starter: "openai/gpt-oss-20b",
   builder: "gpt-4o-mini",
   pro:     "gpt-4o",
   agency:  "gpt-4o",

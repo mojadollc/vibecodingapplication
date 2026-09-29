@@ -21,8 +21,8 @@ export type StepCallback = (step: AgentStep) => void
 
 // Plan default models
 export const PLAN_DEFAULT_MODELS: Record<string, string> = {
-  free: "gemini-3.8-flash",
-  starter: "gemini-3.8-flash",
+  free: "openai/gpt-oss-20b",
+  starter: "openai/gpt-oss-20b",
   builder: "gpt-4o-mini",
   pro: "gpt-4o",
   agency: "gpt-4o",
@@ -39,7 +39,7 @@ const FILE_WRITING_MODEL: Record<string, string> = {
   "gemini-3.5-flash": "gemini-3.5-flash",
   "gemini-3.5-flash-lite": "gemini-3.5-flash-lite",
   "openai/gpt-oss-20b": "openai/gpt-oss-20b",
-  "openai/gpt-oss-120b": "gemini-3.8-flash",
+  "openai/gpt-oss-120b": "openai/gpt-oss-20b",
 }
 
 function getProvider(model: string): string {
@@ -95,7 +95,7 @@ export async function runAgent(
   prompt: string,
   previousMessages: { role: string; content: string }[],
   onStep: StepCallback,
-  model = "gemini-3.8-flash"
+  model = "openai/gpt-oss-20b"
 ): Promise<string> {
   await ensureWorkspace(projectId)
 
