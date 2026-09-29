@@ -1,12 +1,13 @@
 import OpenAI from "openai"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 import { tools } from "./tool-definitions.js"
+import { SYSTEM_PROMPT, BASE_SCAFFOLD } from "./prompts.js"
 import { createFile, readFile, listFiles, deleteFile, ensureWorkspace } from "../tools/file.js"
 import { runCommand } from "../tools/shell.js"
 import { gitCommit, gitInit } from "../tools/git.js"
 import { prisma } from "@mojadoo/database"
 
-const MAX_ITERATIONS = 30
+const MAX_ITERATIONS = 40
 
 export interface AgentStep {
   type: "thinking" | "tool_call" | "tool_result" | "error" | "done"
@@ -17,24 +18,6 @@ export interface AgentStep {
 }
 
 export type StepCallback = (step: AgentStep) => void
-
-const SYSTEM_PROMPT = `You are an expert full-stack developer AI. You build complete, working Next.js applications.
-
-When given a task:
-1. Plan what files need to be created or modified
-2. Create all necessary files using the tools provided
-3. Install any required packages with run_command
-4. Run the build to verify it compiles (npm run build)
-5. If there are errors, read the relevant files, fix them, and rebuild
-6. Once the build succeeds, call task_complete with a summary
-
-Rules:
-- Always create a complete package.json first if the project is new
-- Use Next.js 14 App Router with TypeScript and Tailwind CSS
-- Use shadcn/ui components where appropriate
-- Keep code clean and production-ready
-- Fix ALL build errors before calling task_complete
-- Never call task_complete if the build failed`
 
 function getProvider(model: string): string {
   if (model.startsWith("gpt-")) return "openai"
@@ -67,6 +50,23 @@ function buildClient(provider: string) {
   }
 }
 
+async function scaffoldBase(projectId: string, onStep: StepCallback) {
+  onStep({ type: "thinking", message: "Scaffolding beautiful base project..." })
+
+  for (const [filePath, content] of Object.entries(BASE_SCAFFOLD)) {
+    await createFile(projectId, filePath, content)
+    await prisma.projectFile.upsert({
+      where: { projectId_path: { projectId, path: filePath } },
+      update: { content },
+      create: { projectId, path: filePath, content },
+    })
+  }
+
+  onStep({ type: "tool_call", message: "Installing dependencies...", tool: "run_command" })
+  await runCommand(projectId, "npm install --legacy-peer-deps")
+  onStep({ type: "tool_result", message: "Base scaffold ready", tool: "run_command" })
+}
+
 export async function runAgent(
   projectId: string,
   taskId: string,
@@ -79,7 +79,11 @@ export async function runAgent(
 
   const existingFiles = await listFiles(projectId)
   const isNewProject = existingFiles.length === 0
-  if (isNewProject) await gitInit(projectId)
+
+  if (isNewProject) {
+    await gitInit(projectId)
+    await scaffoldBase(projectId, onStep)
+  }
 
   const provider = getProvider(model)
   const client = buildClient(provider)

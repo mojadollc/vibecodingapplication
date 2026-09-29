@@ -7,17 +7,21 @@ export interface ShellResult {
   exitCode: number
 }
 
-const TIMEOUT_MS = 120_000 // 2 minutes max per command
+const TIMEOUT_MS = 300_000 // 5 minutes max per command
 
 export async function runCommand(projectId: string, command: string): Promise<ShellResult> {
   const cwd = getWorkspacePath(projectId)
 
   try {
-    const result = await execa("cmd", ["/c", command], {
+    const result = await execa("bash", ["-c", command], {
       cwd,
       timeout: TIMEOUT_MS,
       reject: false,
       all: true,
+      env: {
+        ...process.env,
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.nvm/versions/node/v22.23.3/bin",
+      },
     })
 
     return {
@@ -40,8 +44,4 @@ export async function installPackages(projectId: string, packages: string[]): Pr
 
 export async function runBuild(projectId: string): Promise<ShellResult> {
   return runCommand(projectId, "npm run build")
-}
-
-export async function runDev(projectId: string, port: number): Promise<ShellResult> {
-  return runCommand(projectId, `npm run dev -- --port ${port}`)
 }
