@@ -33,7 +33,11 @@ const FILE_WRITING_MODEL: Record<string, string> = {
   "claude-3-5-sonnet-20241022": "gemini-2.5-flash",
   "gpt-4o-mini": "gpt-4o-mini",
   "gemini-2.5-flash": "gemini-2.5-flash",
+  "gemini-2.5-flash-lite": "gemini-2.5-flash-lite",
   "gemini-2.5-pro": "gemini-2.5-flash",
+  "gemini-3-flash-preview": "gemini-3-flash-preview",
+  "gemini-3.5-flash": "gemini-3.5-flash",
+  "gemini-3.5-flash-lite": "gemini-3.5-flash-lite",
   "openai/gpt-oss-20b": "openai/gpt-oss-20b",
   "openai/gpt-oss-120b": "gemini-2.5-flash",
 }

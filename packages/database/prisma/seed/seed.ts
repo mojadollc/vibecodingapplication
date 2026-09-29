@@ -104,13 +104,21 @@ async function main() {
 
   // AI Model configs — only current working models
   const aiModels = [
-    { modelId: "gemini-2.5-flash",            label: "Gemini 2.5 Flash",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 0 },
-    { modelId: "gemini-2.5-pro",              label: "Gemini 2.5 Pro",       provider: "Google",    enabled: true,  isFast: false, sortOrder: 1 },
-    { modelId: "gpt-4o-mini",                 label: "GPT-4o Mini",          provider: "OpenAI",   enabled: false, isFast: true,  sortOrder: 2 },
-    { modelId: "gpt-4o",                      label: "GPT-4o",               provider: "OpenAI",   enabled: false, isFast: false, sortOrder: 3 },
-    { modelId: "openai/gpt-oss-20b",          label: "GPT OSS 20B (Groq)",   provider: "Groq",     enabled: true,  isFast: true,  sortOrder: 4 },
-    { modelId: "openai/gpt-oss-120b",         label: "GPT OSS 120B (Groq)",  provider: "Groq",     enabled: true,  isFast: false, sortOrder: 5 },
-    { modelId: "claude-3-5-sonnet-20241022",  label: "Claude 3.5 Sonnet",    provider: "Anthropic", enabled: false, isFast: false, sortOrder: 6 },
+    // Google Gemini
+    { modelId: "gemini-2.5-flash",           label: "Gemini 2.5 Flash",          provider: "Google",    enabled: true,  isFast: true,  sortOrder: 0 },
+    { modelId: "gemini-2.5-flash-lite",      label: "Gemini 2.5 Flash Lite",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 1 },
+    { modelId: "gemini-2.5-pro",             label: "Gemini 2.5 Pro",            provider: "Google",    enabled: true,  isFast: false, sortOrder: 2 },
+    { modelId: "gemini-3-flash-preview",     label: "Gemini 3 Flash Preview",    provider: "Google",    enabled: true,  isFast: true,  sortOrder: 3 },
+    { modelId: "gemini-3.5-flash",           label: "Gemini 3.5 Flash",          provider: "Google",    enabled: true,  isFast: true,  sortOrder: 4 },
+    { modelId: "gemini-3.5-flash-lite",      label: "Gemini 3.5 Flash Lite",     provider: "Google",    enabled: true,  isFast: true,  sortOrder: 5 },
+    // OpenAI
+    { modelId: "gpt-4o-mini",                label: "GPT-4o Mini",               provider: "OpenAI",    enabled: false, isFast: true,  sortOrder: 6 },
+    { modelId: "gpt-4o",                     label: "GPT-4o",                    provider: "OpenAI",    enabled: false, isFast: false, sortOrder: 7 },
+    // Groq
+    { modelId: "openai/gpt-oss-20b",         label: "GPT OSS 20B (Groq)",        provider: "Groq",      enabled: true,  isFast: true,  sortOrder: 8 },
+    { modelId: "openai/gpt-oss-120b",        label: "GPT OSS 120B (Groq)",       provider: "Groq",      enabled: true,  isFast: false, sortOrder: 9 },
+    // Anthropic
+    { modelId: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet",         provider: "Anthropic", enabled: false, isFast: false, sortOrder: 10 },
   ]
 
   for (const m of aiModels) {

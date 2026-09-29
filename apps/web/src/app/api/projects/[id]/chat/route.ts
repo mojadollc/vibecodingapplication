@@ -14,9 +14,13 @@ const FREE_DAILY_LIMIT = 5
 const FREE_MONTHLY_LIMIT = 25
 
 // Model tiers — which plans can use which models
-const FREE_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "openai/gpt-oss-20b"]
-const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini"]
-const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022", "openai/gpt-oss-120b"]
+const FREE_MODELS = [
+  "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro",
+  "gemini-3-flash-preview", "gemini-3.5-flash", "gemini-3.5-flash-lite",
+  "openai/gpt-oss-20b",
+]
+const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini", "openai/gpt-oss-120b"]
+const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022"]
 const AGENCY_MODELS = PRO_MODELS
 
 // Default model per plan — matches PLAN_DEFAULT_MODELS in agent
