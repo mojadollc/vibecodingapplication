@@ -7,9 +7,10 @@ import ProjectBuilder from "@/components/project/ProjectBuilder"
 
 interface Props {
   params: { id: string }
+  searchParams: { prompt?: string }
 }
 
-export default async function ProjectPage({ params }: Props) {
+export default async function ProjectPage({ params, searchParams }: Props) {
   const session = await auth.api.getSession({ headers: headers() })
   const userId = session!.user.id
 
@@ -38,7 +39,12 @@ export default async function ProjectPage({ params }: Props) {
   return (
     <div className="flex flex-col h-screen">
       <ProjectHeader project={project} />
-      <ProjectBuilder project={project} conversation={conversation} hasGithub={hasGithub} />
+      <ProjectBuilder
+        project={project}
+        conversation={conversation}
+        hasGithub={hasGithub}
+        initialPrompt={searchParams.prompt ?? ""}
+      />
     </div>
   )
 }

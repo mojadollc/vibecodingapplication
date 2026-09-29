@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Send, Loader2, Terminal, CheckCircle2, XCircle, FileCode } from "lucide-react"
+import { Send, Loader2, Terminal, CheckCircle2, XCircle, FileCode, Coins } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Project, Conversation, Message } from "@mojadoo/database"
 import UpgradeModal from "@/components/billing/UpgradeModal"
@@ -23,11 +23,21 @@ interface ChatMessage {
 interface Props {
   project: Project
   conversation: (Conversation & { messages: Message[] }) | null
+  initialPrompt?: string
   onFilesChanged?: () => void
   onProjectStatusChanged?: (status: string) => void
 }
 
-export default function ChatPanel({ project, conversation, onFilesChanged, onProjectStatusChanged }: Props) {
+function estimateCost(text: string): number {
+  const len = text.trim().length
+  if (len === 0) return 0
+  if (len < 50) return 0.5
+  if (len < 150) return 1
+  if (len < 400) return 2
+  return 3
+}
+
+export default function ChatPanel({ project, conversation, initialPrompt, onFilesChanged, onProjectStatusChanged }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(
     (conversation?.messages ?? []).map((m) => ({
       id: m.id,
@@ -42,10 +52,23 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
   const [upgradeMessage, setUpgradeMessage] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
+  const autoSentRef = useRef(false)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  useEffect(() => {
+    if (initialPrompt && !autoSentRef.current && messages.length === 0) {
+      autoSentRef.current = true
+      setInput(initialPrompt)
+      // slight delay so state settles before sending
+      setTimeout(() => {
+        sendMessageWithContent(initialPrompt)
+      }, 300)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const pollTask = useCallback(
     (taskId: string, assistantMsgId: string) => {
@@ -91,8 +114,7 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
     [project.id, onFilesChanged, onProjectStatusChanged]
   )
 
-  async function sendMessage() {
-    const content = input.trim()
+  async function sendMessageWithContent(content: string) {
     if (!content || sending) return
 
     setInput("")
@@ -154,6 +176,10 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
     } catch {
       setSending(false)
     }
+  }
+
+  async function sendMessage() {
+    await sendMessageWithContent(input.trim())
   }
 
   return (
@@ -221,13 +247,21 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
             disabled={sending}
             className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none disabled:opacity-50"
           />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || sending}
-            className="self-end p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          <div className="flex flex-col items-center justify-end gap-1.5">
+            {estimateCost(input) > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Coins className="w-3 h-3" />
+                <span>{estimateCost(input)}</span>
+              </div>
+            )}
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || sending}
+              className="p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       </div>
     </div>

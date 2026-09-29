@@ -44,10 +44,11 @@ export default function NewProjectButton() {
     const json = await res.json()
     if (json.data) {
       reset()
-      setSelectedTemplate("blank")
-      setTemplatePrompt("")
       setOpen(false)
-      router.push(`/projects/${json.data.id}`)
+      const url = templatePrompt
+        ? `/projects/${json.data.id}?prompt=${encodeURIComponent(templatePrompt)}`
+        : `/projects/${json.data.id}`
+      router.push(url)
       router.refresh()
     }
   }

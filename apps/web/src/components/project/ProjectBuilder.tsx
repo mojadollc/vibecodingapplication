@@ -13,11 +13,12 @@ interface Props {
   project: Project
   conversation: (Conversation & { messages: Message[] }) | null
   hasGithub: boolean
+  initialPrompt?: string
 }
 
 type RightTab = "preview" | "deploy"
 
-export default function ProjectBuilder({ project, conversation, hasGithub }: Props) {
+export default function ProjectBuilder({ project, conversation, hasGithub, initialPrompt }: Props) {
   const [fileRefreshTrigger, setFileRefreshTrigger] = useState(0)
   const [projectStatus, setProjectStatus] = useState(project.status)
   const [rightTab, setRightTab] = useState<RightTab>("preview")
@@ -27,6 +28,7 @@ export default function ProjectBuilder({ project, conversation, hasGithub }: Pro
       <ChatPanel
         project={project}
         conversation={conversation}
+        initialPrompt={initialPrompt}
         onFilesChanged={() => setFileRefreshTrigger((n) => n + 1)}
         onProjectStatusChanged={(s) => setProjectStatus(s as typeof projectStatus)}
       />
