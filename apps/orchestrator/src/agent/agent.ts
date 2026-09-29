@@ -1,7 +1,7 @@
 import OpenAI from "openai"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 import { tools } from "./tool-definitions.js"
-import { SYSTEM_PROMPT, BASE_SCAFFOLD } from "./prompts.js"
+import { SYSTEM_PROMPT, SYSTEM_PROMPT_SHORT, BASE_SCAFFOLD } from "./prompts.js"
 import { createFile, readFile, listFiles, deleteFile, ensureWorkspace } from "../tools/file.js"
 import { runCommand } from "../tools/shell.js"
 import { gitCommit, gitInit } from "../tools/git.js"
@@ -115,9 +115,14 @@ export async function runAgent(
   const fileWriteProvider = getProvider(fileWriteModel)
   const fileWriteClient = fileWriteModel !== model ? buildClient(fileWriteProvider) : primaryClient
 
+  // Groq has strict TPM limits — use short prompt and minimal history
+  const isGroq = primaryProvider === "groq"
+  const systemPrompt = isGroq ? SYSTEM_PROMPT_SHORT : SYSTEM_PROMPT
+  const MAX_PREV_MESSAGES = isGroq ? 2 : 10
+
   const messages: ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...previousMessages.slice(-10).map((m) => ({
+    { role: "system", content: systemPrompt },
+    ...previousMessages.slice(-MAX_PREV_MESSAGES).map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     })),
