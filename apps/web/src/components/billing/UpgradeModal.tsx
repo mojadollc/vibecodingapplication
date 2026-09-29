@@ -1,68 +1,140 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Coins, X, Zap } from "lucide-react"
+import { Coins, X, Zap, TrendingUp } from "lucide-react"
+import { useState } from "react"
 
 interface Props {
   onClose: () => void
+  errorMessage?: string
+  currentPlan?: string
 }
 
-export default function UpgradeModal({ onClose }: Props) {
+const PLANS = [
+  { name: "Starter", slug: "starter", price: "₱199/mo", credits: "200 credits", model: "Gemini Flash" },
+  { name: "Builder", slug: "builder", price: "₱499/mo", credits: "1,000 credits", model: "GPT-4o Mini", popular: true },
+  { name: "Pro", slug: "pro", price: "₱999/mo", credits: "3,000 credits", model: "GPT-4o" },
+  { name: "Agency", slug: "agency", price: "₱2,499/mo", credits: "10,000 credits", model: "GPT-4o" },
+]
+
+const TOPUPS = [
+  { label: "100 credits", price: "₱99", credits: 100 },
+  { label: "300 credits", price: "₱249", credits: 300 },
+  { label: "500 credits", price: "₱399", credits: 500 },
+]
+
+export default function UpgradeModal({ onClose, errorMessage, currentPlan }: Props) {
   const router = useRouter()
+  const [tab, setTab] = useState<"upgrade" | "topup">("upgrade")
+
+  const isFree = !currentPlan || currentPlan === "free"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-card border rounded-xl p-8 w-full max-w-md shadow-2xl">
-        <div className="flex items-start justify-between mb-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-card border rounded-xl w-full max-w-md shadow-2xl">
+        {/* Header */}
+        <div className="flex items-start justify-between p-6 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
               <Coins className="w-5 h-5 text-destructive" />
             </div>
             <div>
               <h2 className="font-bold text-lg">Out of credits</h2>
-              <p className="text-sm text-muted-foreground">Upgrade to keep building</p>
+              <p className="text-sm text-muted-foreground">
+                {errorMessage ?? "You've used all your credits for this period."}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground mt-1">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-3 mb-6">
-          {[
-            { name: "Starter", price: "₱299/mo", credits: "500 credits" },
-            { name: "Pro", price: "₱799/mo", credits: "2,000 credits", popular: true },
-            { name: "Business", price: "₱1,999/mo", credits: "10,000 credits" },
-          ].map((plan) => (
-            <div
-              key={plan.name}
-              className={`flex items-center justify-between p-3 rounded-lg border ${
-                plan.popular ? "border-primary bg-primary/5" : ""
+        {/* Tabs */}
+        <div className="flex border-b mx-6">
+          <button
+            onClick={() => setTab("upgrade")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              tab === "upgrade" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Upgrade Plan
+          </button>
+          {!isFree && (
+            <button
+              onClick={() => setTab("topup")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === "topup" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              <div className="flex items-center gap-2">
-                {plan.popular && <Zap className="w-3.5 h-3.5 text-primary" />}
-                <span className="text-sm font-medium">{plan.name}</span>
-                <span className="text-xs text-muted-foreground">{plan.credits}</span>
-              </div>
-              <span className="text-sm font-semibold">{plan.price}</span>
-            </div>
-          ))}
+              <Coins className="w-3.5 h-3.5" />
+              Buy Credits
+            </button>
+          )}
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-md border text-sm hover:bg-muted"
-          >
-            Maybe later
-          </button>
-          <button
-            onClick={() => { onClose(); router.push("/pricing") }}
-            className="flex-1 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
-          >
-            View plans
-          </button>
+        <div className="p-6">
+          {tab === "upgrade" ? (
+            <div className="space-y-2.5">
+              {PLANS.map((plan) => (
+                <div
+                  key={plan.slug}
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${
+                    plan.popular ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    {plan.popular && <Zap className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{plan.name}</span>
+                        {plan.popular && (
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Popular</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{plan.credits} · {plan.model}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold">{plan.price}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <p className="text-sm text-muted-foreground mb-4">
+                Buy extra credits that never expire and stack on top of your plan.
+              </p>
+              {TOPUPS.map((t) => (
+                <div
+                  key={t.credits}
+                  className="flex items-center justify-between p-3.5 rounded-xl border hover:bg-muted/50 cursor-pointer"
+                  onClick={() => { onClose(); router.push(`/billing?topup=${t.credits}`) }}
+                >
+                  <div>
+                    <p className="text-sm font-semibold">{t.label}</p>
+                    <p className="text-xs text-muted-foreground">One-time purchase · never expires</p>
+                  </div>
+                  <span className="text-sm font-bold">{t.price}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-3 mt-5">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-lg border text-sm hover:bg-muted transition-colors"
+            >
+              Maybe later
+            </button>
+            <button
+              onClick={() => { onClose(); router.push("/pricing") }}
+              className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              {tab === "upgrade" ? "View all plans" : "Go to billing"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

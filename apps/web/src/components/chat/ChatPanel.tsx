@@ -39,6 +39,7 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
   const [sending, setSending] = useState(false)
   const [conversationId, setConversationId] = useState(conversation?.id ?? "")
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -119,6 +120,7 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
 
       if (json.error) {
         if (res.status === 402) {
+          setUpgradeMessage(json.error)
           setShowUpgrade(true)
           setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId && m.id !== userMsg.id))
           setSending(false)
@@ -156,7 +158,7 @@ export default function ChatPanel({ project, conversation, onFilesChanged, onPro
 
   return (
     <>
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} errorMessage={upgradeMessage} />}
       <div className="w-96 flex flex-col border-r bg-card shrink-0">
       <div className="h-10 border-b flex items-center px-4">
         <span className="text-xs text-muted-foreground font-medium">AI Chat</span>
