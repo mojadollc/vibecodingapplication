@@ -17,7 +17,6 @@ const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
       "5 credits/day (resets at midnight)",
       "25 credits/month cap",
       "Up to 3 projects",
-      "Gemini Flash AI model",
       "Community support",
     ],
   },
@@ -26,7 +25,6 @@ const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
     features: [
       "200 credits/month",
       "Up to 5 projects",
-      "Gemini Flash AI model",
       "GitHub sync",
       "Email support",
     ],
@@ -36,7 +34,6 @@ const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
     features: [
       "1,000 credits/month",
       "Up to 15 projects",
-      "GPT-4o Mini AI model",
       "GitHub sync",
       "Priority email support",
     ],
@@ -46,7 +43,6 @@ const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
     features: [
       "3,000 credits/month",
       "Unlimited projects",
-      "GPT-4o + Gemini hybrid",
       "GitHub sync & deploy",
       "Priority support",
     ],
@@ -56,7 +52,6 @@ const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
     features: [
       "10,000 credits/month",
       "Unlimited projects",
-      "All AI models unlocked",
       "GitHub sync & deploy",
       "Dedicated support",
     ],

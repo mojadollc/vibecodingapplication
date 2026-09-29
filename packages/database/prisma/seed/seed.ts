@@ -25,7 +25,7 @@ async function main() {
     {
       name: "Builder",
       slug: "builder",
-      description: "For freelancers shipping client projects — unlocks GPT-4o Mini.",
+      description: "For freelancers shipping client projects — more credits, more projects.",
       priceMonthly: 49900,
       credits: 1000,
       maxProjects: 15,
@@ -34,7 +34,7 @@ async function main() {
     {
       name: "Pro",
       slug: "pro",
-      description: "For professionals who need the best AI — GPT-4o + Gemini hybrid, unlimited projects.",
+      description: "For professionals who need the best AI — unlimited projects.",
       priceMonthly: 99900,
       credits: 3000,
       maxProjects: 999,
@@ -43,7 +43,7 @@ async function main() {
     {
       name: "Agency",
       slug: "agency",
-      description: "For teams & agencies at full scale — all models unlocked, dedicated support.",
+      description: "For teams & agencies at full scale — maximum credits, dedicated support.",
       priceMonthly: 249900,
       credits: 10000,
       maxProjects: 999,
