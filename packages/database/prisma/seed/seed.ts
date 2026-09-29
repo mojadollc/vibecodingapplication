@@ -7,7 +7,7 @@ async function main() {
     {
       name: "Free",
       slug: "free",
-      description: "Try before you buy",
+      description: "Try before you buy — 5 credits/day",
       priceMonthly: 0,
       credits: 0,
       maxProjects: 3,
@@ -17,16 +17,16 @@ async function main() {
       name: "Starter",
       slug: "starter",
       description: "For students & beginners",
-      priceMonthly: 19900,
-      credits: 300,
+      priceMonthly: 19900, // ₱199
+      credits: 200,
       maxProjects: 5,
       sortOrder: 1,
     },
     {
       name: "Builder",
       slug: "builder",
-      description: "For freelancers",
-      priceMonthly: 49900,
+      description: "For freelancers — unlocks GPT-4o Mini",
+      priceMonthly: 49900, // ₱499
       credits: 1000,
       maxProjects: 15,
       sortOrder: 2,
@@ -35,7 +35,7 @@ async function main() {
       name: "Pro",
       slug: "pro",
       description: "For professionals — unlocks GPT-4o & Claude",
-      priceMonthly: 99900,
+      priceMonthly: 99900, // ₱999
       credits: 3000,
       maxProjects: 999,
       sortOrder: 3,
@@ -43,8 +43,8 @@ async function main() {
     {
       name: "Agency",
       slug: "agency",
-      description: "For teams & agencies",
-      priceMonthly: 249900,
+      description: "For teams & agencies — all models, unlimited projects",
+      priceMonthly: 249900, // ₱2,499
       credits: 10000,
       maxProjects: 999,
       sortOrder: 4,
@@ -59,9 +59,7 @@ async function main() {
     })
     console.log(`Upserted plan: ${plan.name}`)
   }
-}
 
-  // Seed project templates
   const templates = [
     { name: "Blank", slug: "blank", description: "Start from scratch", category: "General", prompt: "", icon: "layout", sortOrder: 0 },
     { name: "POS System", slug: "pos", description: "Point of sale for retail stores", category: "Business", prompt: "Build a complete POS system with product catalog, cart, checkout, payment recording, daily sales report, and inventory management. Use Next.js App Router, TypeScript, Tailwind CSS, and shadcn/ui.", icon: "shopping-cart", sortOrder: 1 },
@@ -79,6 +77,7 @@ async function main() {
     })
     console.log(`Upserted template: ${t.name}`)
   }
+}
 
 main()
   .catch(console.error)

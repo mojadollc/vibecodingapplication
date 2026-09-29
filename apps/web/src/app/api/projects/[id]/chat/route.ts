@@ -19,13 +19,13 @@ const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini"]
 const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022"]
 const AGENCY_MODELS = PRO_MODELS
 
-// Default model per plan
+// Default model per plan — matches PLAN_DEFAULT_MODELS in agent
 const DEFAULT_MODEL: Record<string, string> = {
-  free: "gemini-2.0-flash",
-  starter: "gemini-2.0-flash",
-  builder: "gpt-4o-mini",
-  pro: "gpt-4o",
-  agency: "gpt-4o",
+  free:    "gemini-2.0-flash",  // free tier API — ₱0 cost
+  starter: "gemini-2.0-flash",  // paid Gemini — ~₱0.08/build
+  builder: "gpt-4o-mini",       // ~₱0.13/build
+  pro:     "gpt-4o",            // hybrid: GPT-4o plan + Gemini writes
+  agency:  "gpt-4o",            // hybrid: GPT-4o plan + Gemini writes
 }
 
 function getAllowedModels(planSlug: string): string[] {

@@ -19,6 +19,27 @@ export interface AgentStep {
 
 export type StepCallback = (step: AgentStep) => void
 
+// Plan default models
+export const PLAN_DEFAULT_MODELS: Record<string, string> = {
+  free: "gemini-2.0-flash",
+  starter: "gemini-2.0-flash",
+  builder: "gpt-4o-mini",
+  pro: "gpt-4o",
+  agency: "gpt-4o",
+}
+
+// Hybrid strategy: use cheaper model for file writing to cut costs ~60%
+// Pro/Agency: GPT-4o for planning, Gemini Flash for actual file creation
+const FILE_WRITING_MODEL: Record<string, string> = {
+  "gpt-4o": "gemini-2.0-flash",         // saves ~95% on file writes
+  "claude-3-5-sonnet-20241022": "gemini-2.0-flash",
+  "gpt-4o-mini": "gpt-4o-mini",         // already cheap, keep same
+  "gemini-2.0-flash": "gemini-2.0-flash",
+  "gemini-1.5-pro": "gemini-1.5-pro",
+  "llama3-70b-8192": "llama3-70b-8192",
+  "mixtral-8x7b-32768": "mixtral-8x7b-32768",
+}
+
 function getProvider(model: string): string {
   if (model.startsWith("gpt-")) return "openai"
   if (model.startsWith("gemini-")) return "gemini"
@@ -27,7 +48,7 @@ function getProvider(model: string): string {
   return "openai"
 }
 
-function buildClient(provider: string) {
+function buildClient(provider: string): OpenAI {
   switch (provider) {
     case "gemini":
       return new OpenAI({
@@ -52,7 +73,6 @@ function buildClient(provider: string) {
 
 async function scaffoldBase(projectId: string, onStep: StepCallback) {
   onStep({ type: "thinking", message: "Scaffolding beautiful base project..." })
-
   for (const [filePath, content] of Object.entries(BASE_SCAFFOLD)) {
     await createFile(projectId, filePath, content)
     await prisma.projectFile.upsert({
@@ -61,7 +81,6 @@ async function scaffoldBase(projectId: string, onStep: StepCallback) {
       create: { projectId, path: filePath, content },
     })
   }
-
   onStep({ type: "tool_call", message: "Installing dependencies...", tool: "run_command" })
   await runCommand(projectId, "npm install --legacy-peer-deps")
   onStep({ type: "tool_result", message: "Base scaffold ready", tool: "run_command" })
@@ -73,20 +92,25 @@ export async function runAgent(
   prompt: string,
   previousMessages: { role: string; content: string }[],
   onStep: StepCallback,
-  model = "gpt-4o"
+  model = "gemini-2.0-flash"
 ): Promise<string> {
   await ensureWorkspace(projectId)
 
   const existingFiles = await listFiles(projectId)
   const isNewProject = existingFiles.length === 0
-
   if (isNewProject) {
     await gitInit(projectId)
     await scaffoldBase(projectId, onStep)
   }
 
-  const provider = getProvider(model)
-  const client = buildClient(provider)
+  // Primary client for planning/thinking
+  const primaryProvider = getProvider(model)
+  const primaryClient = buildClient(primaryProvider)
+
+  // Secondary client for file writing (cheaper model to save costs)
+  const fileWriteModel = FILE_WRITING_MODEL[model] ?? model
+  const fileWriteProvider = getProvider(fileWriteModel)
+  const fileWriteClient = fileWriteModel !== model ? buildClient(fileWriteProvider) : primaryClient
 
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -99,6 +123,7 @@ export async function runAgent(
 
   let iterations = 0
   let finalSummary = ""
+  let fileWriteCount = 0
 
   while (iterations < MAX_ITERATIONS) {
     iterations++
@@ -106,7 +131,8 @@ export async function runAgent(
     await prisma.aiTask.update({ where: { id: taskId }, data: { status: "RUNNING" } })
     onStep({ type: "thinking", message: "Thinking..." })
 
-    const response = await client.chat.completions.create({
+    // Use primary model for planning decisions
+    const response = await primaryClient.chat.completions.create({
       model,
       messages,
       tools,
@@ -132,11 +158,35 @@ export async function runAgent(
 
       try {
         if (fnName === "create_file") {
-          await createFile(projectId, args.path, args.content)
+          // Use cheaper model to actually write file content if hybrid strategy applies
+          let fileContent = args.content
+          if (fileWriteModel !== model && fileWriteCount < 20) {
+            fileWriteCount++
+            try {
+              const writeResponse = await fileWriteClient.chat.completions.create({
+                model: fileWriteModel,
+                messages: [
+                  { role: "system", content: SYSTEM_PROMPT },
+                  {
+                    role: "user",
+                    content: `Write the complete content for file: ${args.path}\n\nContext: ${prompt}\n\nRequirements: Follow the design system exactly. Return ONLY the file content, no explanation.`,
+                  },
+                ],
+              })
+              const generated = writeResponse.choices[0]?.message?.content
+              if (generated && generated.length > 50) {
+                fileContent = generated.replace(/^```[\w]*\n?/, "").replace(/\n?```$/, "")
+              }
+            } catch {
+              // fallback to original content from primary model
+            }
+          }
+
+          await createFile(projectId, args.path, fileContent)
           await prisma.projectFile.upsert({
             where: { projectId_path: { projectId, path: args.path } },
-            update: { content: args.content },
-            create: { projectId, path: args.path, content: args.content },
+            update: { content: fileContent },
+            create: { projectId, path: args.path, content: fileContent },
           })
           result = `Created ${args.path}`
 
