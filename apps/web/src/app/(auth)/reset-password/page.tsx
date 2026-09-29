@@ -1,22 +1,27 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { signIn } from "@/lib/auth-client"
+import { authClient } from "@/lib/auth-client"
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  confirm: z.string(),
+}).refine((d) => d.password === d.confirm, {
+  message: "Passwords do not match",
+  path: ["confirm"],
 })
 
 type FormData = z.infer<typeof schema>
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token") ?? ""
   const [error, setError] = useState<string | null>(null)
 
   const {
@@ -27,36 +32,35 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     setError(null)
-    const result = await signIn.email({ email: data.email, password: data.password })
+    const result = await authClient.resetPassword({ newPassword: data.password, token })
     if (result.error) {
-      setError(result.error.message ?? "Login failed")
+      setError(result.error.message ?? "Reset failed")
       return
     }
-    const me = await fetch("/api/auth/me").then((r) => r.json())
-    router.push(me?.role === "ADMIN" ? "/mojadoo" : "/dashboard")
+    router.push("/login?reset=1")
+  }
+
+  if (!token) {
+    return (
+      <div className="bg-card border rounded-xl p-8 shadow-sm text-center space-y-3">
+        <p className="text-destructive font-medium">Invalid or expired reset link.</p>
+        <Link href="/forgot-password" className="text-primary hover:underline text-sm">
+          Request a new one
+        </Link>
+      </div>
+    )
   }
 
   return (
     <div className="bg-card border rounded-xl p-8 shadow-sm">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="text-muted-foreground text-sm mt-1">Sign in to Mojadoo Builder</p>
+        <h1 className="text-2xl font-bold">Reset password</h1>
+        <p className="text-muted-foreground text-sm mt-1">Enter your new password</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="text-sm font-medium">Email</label>
-          <input
-            {...register("email")}
-            type="email"
-            placeholder="you@example.com"
-            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          {errors.email && <p className="text-destructive text-xs mt-1">{errors.email.message}</p>}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Password</label>
+          <label className="text-sm font-medium">New password</label>
           <input
             {...register("password")}
             type="password"
@@ -66,6 +70,17 @@ export default function LoginPage() {
           {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
         </div>
 
+        <div>
+          <label className="text-sm font-medium">Confirm password</label>
+          <input
+            {...register("confirm")}
+            type="password"
+            placeholder="••••••••"
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          {errors.confirm && <p className="text-destructive text-xs mt-1">{errors.confirm.message}</p>}
+        </div>
+
         {error && <p className="text-destructive text-sm">{error}</p>}
 
         <button
@@ -73,21 +88,9 @@ export default function LoginPage() {
           disabled={isSubmitting}
           className="w-full rounded-md bg-primary text-primary-foreground py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
         >
-          {isSubmitting ? "Signing in..." : "Sign in"}
+          {isSubmitting ? "Resetting..." : "Reset password"}
         </button>
       </form>
-
-      <p className="text-center text-sm text-muted-foreground mt-4">
-        <Link href="/forgot-password" className="text-primary hover:underline">
-          Forgot password?
-        </Link>
-      </p>
-      <p className="text-center text-sm text-muted-foreground mt-2">
-        No account?{" "}
-        <Link href="/register" className="text-primary hover:underline">
-          Sign up
-        </Link>
-      </p>
     </div>
   )
 }

@@ -12,47 +12,56 @@ interface Props {
 
 const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
   free: {
-    tagline: "Try it out — no credit card needed",
+    tagline: "Try before you buy — 5 credits/day",
     features: [
-      "5 credits/day (resets at midnight)",
-      "25 credits/month cap",
-      "Up to 3 projects",
+      "50 AI credits",
+      "3 projects",
       "Community support",
+      "Free forever",
     ],
   },
   starter: {
-    tagline: "For students & beginners learning to build",
+    tagline: "For students & beginners",
     features: [
-      "200 credits/month",
-      "Up to 5 projects",
-      "GitHub sync",
+      "500 AI credits/mo",
+      "10 projects",
       "Email support",
+      "GitHub sync",
     ],
   },
   builder: {
-    tagline: "For freelancers shipping client projects",
+    tagline: "For freelancers — unlocks GPT-4o Mini",
     features: [
-      "1,000 credits/month",
-      "Up to 15 projects",
-      "GitHub sync",
+      "1,000 AI credits/mo",
+      "Unlimited projects",
+      "GPT-4o Mini access",
       "Priority email support",
     ],
   },
   pro: {
-    tagline: "For professionals who need the best AI",
+    tagline: "For professionals — unlocks GPT-4o & Claude",
     features: [
-      "3,000 credits/month",
+      "2,000 AI credits/mo",
       "Unlimited projects",
-      "GitHub sync & deploy",
       "Priority support",
+      "Custom domains",
+    ],
+  },
+  business: {
+    tagline: "For teams and agencies",
+    features: [
+      "10,000 AI credits/mo",
+      "Unlimited projects",
+      "Dedicated support",
+      "Team access",
     ],
   },
   agency: {
-    tagline: "For teams & agencies at full scale",
+    tagline: "For teams & agencies — all models, unlimited projects",
     features: [
-      "10,000 credits/month",
+      "Unlimited AI credits",
       "Unlimited projects",
-      "GitHub sync & deploy",
+      "All AI models",
       "Dedicated support",
     ],
   },

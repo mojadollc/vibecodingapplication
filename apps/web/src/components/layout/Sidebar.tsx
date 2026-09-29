@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, LogOut, Zap, CreditCard, Sparkles, ShieldCheck } from "lucide-react"
+import { LayoutDashboard, LogOut, Zap, CreditCard, Sparkles, ShieldCheck, Settings } from "lucide-react"
 import { signOut } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pricing", label: "Pricing", icon: Sparkles },
   { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 export default function Sidebar({ user, isAdmin }: Props) {
