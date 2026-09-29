@@ -10,61 +10,18 @@ interface Props {
   currentPlanId?: string
 }
 
-const HIGHLIGHTS: Record<string, { tagline: string; features: string[] }> = {
-  free: {
-    tagline: "Try before you buy — 5 credits/day",
-    features: [
-      "50 AI credits",
-      "3 projects",
-      "Community support",
-      "Free forever",
-    ],
-  },
-  starter: {
-    tagline: "For students & beginners",
-    features: [
-      "500 AI credits/mo",
-      "10 projects",
-      "Email support",
-      "GitHub sync",
-    ],
-  },
-  builder: {
-    tagline: "For freelancers — unlocks GPT-4o Mini",
-    features: [
-      "1,000 AI credits/mo",
-      "Unlimited projects",
-      "GPT-4o Mini access",
-      "Priority email support",
-    ],
-  },
-  pro: {
-    tagline: "For professionals — unlocks GPT-4o & Claude",
-    features: [
-      "2,000 AI credits/mo",
-      "Unlimited projects",
-      "Priority support",
-      "Custom domains",
-    ],
-  },
-  business: {
-    tagline: "For teams and agencies",
-    features: [
-      "10,000 AI credits/mo",
-      "Unlimited projects",
-      "Dedicated support",
-      "Team access",
-    ],
-  },
-  agency: {
-    tagline: "For teams & agencies — all models, unlimited projects",
-    features: [
-      "Unlimited AI credits",
-      "Unlimited projects",
-      "All AI models",
-      "Dedicated support",
-    ],
-  },
+function getPlanFeatures(plan: SubscriptionPlan): string[] {
+  const features: string[] = []
+
+  if (plan.priceMonthly === 0) {
+    features.push("5 AI credits/day")
+  } else {
+    features.push(`${plan.credits.toLocaleString()} AI credits/mo`)
+  }
+
+  features.push(plan.maxProjects >= 999 ? "Unlimited projects" : `${plan.maxProjects} projects`)
+
+  return features
 }
 
 export default function PricingCards({ plans, currentPlanId }: Props) {
@@ -118,7 +75,7 @@ export default function PricingCards({ plans, currentPlanId }: Props) {
         {plans.map((plan) => {
           const isCurrent = plan.id === currentPlanId
           const isPro = plan.slug === "pro"
-          const { tagline, features } = HIGHLIGHTS[plan.slug] ?? { tagline: plan.description ?? "", features: [] }
+          const features = getPlanFeatures(plan)
 
           return (
             <div
@@ -139,7 +96,9 @@ export default function PricingCards({ plans, currentPlanId }: Props) {
 
               <div className="mb-4">
                 <h3 className="font-bold text-lg">{plan.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{tagline}</p>
+                {plan.description && (
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{plan.description}</p>
+                )}
               </div>
 
               <div className="mb-6">
