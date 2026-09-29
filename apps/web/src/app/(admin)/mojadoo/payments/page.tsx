@@ -2,7 +2,8 @@ import { prisma } from "@mojadoo/database"
 import { format } from "date-fns"
 
 export const dynamic = "force-dynamic"
- {
+
+export default async function AdminPaymentsPage() {
   const payments = await prisma.payment.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,
