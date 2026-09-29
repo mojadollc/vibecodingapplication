@@ -7,7 +7,7 @@ async function main() {
     {
       name: "Free",
       slug: "free",
-      description: "Get started for free",
+      description: "Try before you buy",
       priceMonthly: 0,
       credits: 0,
       maxProjects: 3,
@@ -16,29 +16,38 @@ async function main() {
     {
       name: "Starter",
       slug: "starter",
-      description: "For indie developers",
-      priceMonthly: 29900, // ₱299.00 in centavos
-      credits: 500,
-      maxProjects: 10,
+      description: "For students & beginners",
+      priceMonthly: 19900,
+      credits: 300,
+      maxProjects: 5,
       sortOrder: 1,
+    },
+    {
+      name: "Builder",
+      slug: "builder",
+      description: "For freelancers",
+      priceMonthly: 49900,
+      credits: 1000,
+      maxProjects: 15,
+      sortOrder: 2,
     },
     {
       name: "Pro",
       slug: "pro",
-      description: "For serious builders",
-      priceMonthly: 79900, // ₱799.00
-      credits: 2000,
-      maxProjects: 999,
-      sortOrder: 2,
-    },
-    {
-      name: "Business",
-      slug: "business",
-      description: "For teams and agencies",
-      priceMonthly: 199900, // ₱1,999.00
-      credits: 10000,
+      description: "For professionals — unlocks GPT-4o & Claude",
+      priceMonthly: 99900,
+      credits: 3000,
       maxProjects: 999,
       sortOrder: 3,
+    },
+    {
+      name: "Agency",
+      slug: "agency",
+      description: "For teams & agencies",
+      priceMonthly: 249900,
+      credits: 10000,
+      maxProjects: 999,
+      sortOrder: 4,
     },
   ]
 

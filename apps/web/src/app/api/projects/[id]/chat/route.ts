@@ -13,13 +13,37 @@ const schema = z.object({
 const FREE_DAILY_LIMIT = 5
 const FREE_MONTHLY_LIMIT = 25
 
-// Estimate credit cost based on prompt complexity
+// Model tiers — which plans can use which models
+const FREE_MODELS = ["gemini-2.0-flash", "gemini-1.5-pro", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"]
+const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini"]
+const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022"]
+const AGENCY_MODELS = PRO_MODELS
+
+// Default model per plan
+const DEFAULT_MODEL: Record<string, string> = {
+  free: "gemini-2.0-flash",
+  starter: "gemini-2.0-flash",
+  builder: "gpt-4o-mini",
+  pro: "gpt-4o",
+  agency: "gpt-4o",
+}
+
+function getAllowedModels(planSlug: string): string[] {
+  switch (planSlug) {
+    case "agency": return AGENCY_MODELS
+    case "pro": return PRO_MODELS
+    case "builder": return STARTER_MODELS
+    case "starter": return STARTER_MODELS
+    default: return FREE_MODELS
+  }
+}
+
 function estimateCost(prompt: string): number {
   const len = prompt.trim().length
-  if (len < 50) return 0.5   // small tweak e.g. "change button color to red"
-  if (len < 150) return 1    // simple feature
-  if (len < 400) return 2    // medium feature
-  return 3                   // complex feature
+  if (len < 50) return 0.5
+  if (len < 150) return 1
+  if (len < 400) return 2
+  return 3
 }
 
 function isNewDay(date: Date): boolean {
@@ -63,13 +87,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     conversation = await prisma.conversation.create({ data: { projectId: project.id } })
   }
 
-  // Get active subscription to determine plan
+  // Get active subscription
   const subscription = await prisma.subscription.findFirst({
     where: { userId: session.user.id, status: "ACTIVE" },
     include: { plan: true },
   })
 
-  const isFree = !subscription
+  const planSlug = subscription?.plan.slug ?? "free"
+  const isFree = planSlug === "free"
+  const allowedModels = getAllowedModels(planSlug)
+
+  // Determine which model to use — enforce plan restrictions
+  let modelToUse = project.aiModel ?? DEFAULT_MODEL[planSlug]
+  if (!allowedModels.includes(modelToUse)) {
+    // Downgrade to plan default if selected model not allowed
+    modelToUse = DEFAULT_MODEL[planSlug]
+    await prisma.project.update({ where: { id: project.id }, data: { aiModel: modelToUse } })
+  }
 
   // Get or create wallet
   let wallet = await prisma.creditWallet.findUnique({ where: { userId: session.user.id } })
@@ -117,7 +151,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     }
   } else {
-    // Paid plan — use balance
     if (wallet.balance < cost) {
       return NextResponse.json(
         { error: "Insufficient credits. Please top up or upgrade your plan." },
@@ -148,26 +181,26 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         type: "DEBIT",
         amount: costInt,
         balanceAfter: wallet.balance - costInt,
-        description: `AI build (${cost} credits)`,
+        description: `AI build via ${modelToUse} (${cost} credits)`,
       },
     }),
   ])
 
-  // Start orchestrator task
+  // Start orchestrator task with enforced model
   let taskId: string | null = null
   try {
-    const result = await startAgentTask(project.id, parsed.data.content, conversation.id, project.aiModel ?? "gpt-4o")
+    const result = await startAgentTask(project.id, parsed.data.content, conversation.id, modelToUse)
     taskId = result.taskId
   } catch {
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: "ASSISTANT",
-        content: "Orchestrator is not running. Start it with: cd apps/orchestrator && pnpm dev",
+        content: "Orchestrator is not running. Please contact support.",
       },
     })
     return NextResponse.json({ data: { userMessage, taskId: null } })
   }
 
-  return NextResponse.json({ data: { userMessage, taskId, conversationId: conversation.id, creditCost: cost } })
+  return NextResponse.json({ data: { userMessage, taskId, conversationId: conversation.id, creditCost: cost, model: modelToUse } })
 }
