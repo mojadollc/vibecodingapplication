@@ -21,21 +21,19 @@ export type StepCallback = (step: AgentStep) => void
 
 // Plan default models
 export const PLAN_DEFAULT_MODELS: Record<string, string> = {
-  free: "gemini-2.0-flash",
-  starter: "gemini-2.0-flash",
+  free: "gemini-2.5-flash",
+  starter: "gemini-2.5-flash",
   builder: "gpt-4o-mini",
   pro: "gpt-4o",
   agency: "gpt-4o",
 }
 
-// Hybrid strategy: use cheaper model for file writing to cut costs ~60%
-// Pro/Agency: GPT-4o for planning, Gemini Flash for actual file creation
 const FILE_WRITING_MODEL: Record<string, string> = {
-  "gpt-4o": "gemini-2.0-flash",         // saves ~95% on file writes
-  "claude-3-5-sonnet-20241022": "gemini-2.0-flash",
-  "gpt-4o-mini": "gpt-4o-mini",         // already cheap, keep same
-  "gemini-2.0-flash": "gemini-2.0-flash",
-  "gemini-1.5-pro": "gemini-1.5-pro",
+  "gpt-4o": "gemini-2.5-flash",
+  "claude-3-5-sonnet-20241022": "gemini-2.5-flash",
+  "gpt-4o-mini": "gpt-4o-mini",
+  "gemini-2.5-flash": "gemini-2.5-flash",
+  "gemini-2.5-pro": "gemini-2.5-flash",
   "llama3-70b-8192": "llama3-70b-8192",
   "mixtral-8x7b-32768": "mixtral-8x7b-32768",
 }
@@ -93,7 +91,7 @@ export async function runAgent(
   prompt: string,
   previousMessages: { role: string; content: string }[],
   onStep: StepCallback,
-  model = "gemini-2.0-flash"
+  model = "gemini-2.5-flash"
 ): Promise<string> {
   await ensureWorkspace(projectId)
 
