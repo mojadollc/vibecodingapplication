@@ -130,12 +130,23 @@ export async function runAgent(
     await prisma.aiTask.update({ where: { id: taskId }, data: { status: "RUNNING" } })
     onStep({ type: "thinking", message: iterations === 1 ? "Analyzing your request..." : `Thinking... (step ${iterations})` })
 
-    const response = await primaryClient.chat.completions.create({
-      model,
-      messages,
-      tools,
-      tool_choice: "auto",
-    })
+    let response
+    try {
+      response = await primaryClient.chat.completions.create({
+        model,
+        messages,
+        tools,
+        tool_choice: "auto",
+      })
+    } catch (err: any) {
+      const errMsg = err?.message ?? String(err)
+      onStep({ type: "error", message: `AI API error: ${errMsg}` })
+      await prisma.aiTask.update({
+        where: { id: taskId },
+        data: { status: "FAILED", error: `AI API error: ${errMsg}` },
+      })
+      return `Failed: ${errMsg}`
+    }
 
     const choice = response.choices[0]
     const assistantMessage = choice.message
