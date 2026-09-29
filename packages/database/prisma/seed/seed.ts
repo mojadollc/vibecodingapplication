@@ -7,7 +7,7 @@ async function main() {
     {
       name: "Free",
       slug: "free",
-      description: "Try before you buy — 5 credits/day",
+      description: "Try it out — no credit card needed. 5 credits/day, resets at midnight.",
       priceMonthly: 0,
       credits: 0,
       maxProjects: 3,
@@ -16,8 +16,8 @@ async function main() {
     {
       name: "Starter",
       slug: "starter",
-      description: "For students & beginners",
-      priceMonthly: 19900, // ₱199
+      description: "For students & beginners learning to build apps with AI.",
+      priceMonthly: 19900,
       credits: 200,
       maxProjects: 5,
       sortOrder: 1,
@@ -25,8 +25,8 @@ async function main() {
     {
       name: "Builder",
       slug: "builder",
-      description: "For freelancers — unlocks GPT-4o Mini",
-      priceMonthly: 49900, // ₱499
+      description: "For freelancers shipping client projects — unlocks GPT-4o Mini.",
+      priceMonthly: 49900,
       credits: 1000,
       maxProjects: 15,
       sortOrder: 2,
@@ -34,8 +34,8 @@ async function main() {
     {
       name: "Pro",
       slug: "pro",
-      description: "For professionals — unlocks GPT-4o & Claude",
-      priceMonthly: 99900, // ₱999
+      description: "For professionals who need the best AI — GPT-4o + Gemini hybrid, unlimited projects.",
+      priceMonthly: 99900,
       credits: 3000,
       maxProjects: 999,
       sortOrder: 3,
@@ -43,8 +43,8 @@ async function main() {
     {
       name: "Agency",
       slug: "agency",
-      description: "For teams & agencies — all models, unlimited projects",
-      priceMonthly: 249900, // ₱2,499
+      description: "For teams & agencies at full scale — all models unlocked, dedicated support.",
+      priceMonthly: 249900,
       credits: 10000,
       maxProjects: 999,
       sortOrder: 4,

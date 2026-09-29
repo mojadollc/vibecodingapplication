@@ -11,10 +11,10 @@ interface Props {
 }
 
 const PLANS = [
-  { name: "Starter", slug: "starter", price: "₱199/mo", credits: "200 credits", model: "Gemini Flash" },
-  { name: "Builder", slug: "builder", price: "₱499/mo", credits: "1,000 credits", model: "GPT-4o Mini", popular: true },
-  { name: "Pro", slug: "pro", price: "₱999/mo", credits: "3,000 credits", model: "GPT-4o" },
-  { name: "Agency", slug: "agency", price: "₱2,499/mo", credits: "10,000 credits", model: "GPT-4o" },
+  { name: "Starter", slug: "starter", price: "₱199/mo", credits: "200 credits", model: "Gemini Flash", desc: "For students & beginners" },
+  { name: "Builder", slug: "builder", price: "₱499/mo", credits: "1,000 credits", model: "GPT-4o Mini", popular: true, desc: "For freelancers shipping projects" },
+  { name: "Pro", slug: "pro", price: "₱999/mo", credits: "3,000 credits", model: "GPT-4o", desc: "For professionals needing the best AI" },
+  { name: "Agency", slug: "agency", price: "₱2,499/mo", credits: "10,000 credits", model: "All models", desc: "For teams & agencies at scale" },
 ]
 
 const TOPUPS = [
@@ -93,6 +93,7 @@ export default function UpgradeModal({ onClose, errorMessage, currentPlan }: Pro
                           <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Popular</span>
                         )}
                       </div>
+                      <p className="text-xs text-muted-foreground">{plan.desc}</p>
                       <p className="text-xs text-muted-foreground">{plan.credits} · {plan.model}</p>
                     </div>
                   </div>
