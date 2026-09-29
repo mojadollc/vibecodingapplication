@@ -16,8 +16,8 @@ interface Props {
   planSlug?: string
 }
 
-const FREE_MODELS = ["gemini-2.0-flash", "gemini-1.5-pro", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"]
-const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini"]
+const FREE_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-3-flash-preview", "gemini-3.5-flash", "gemini-3.5-flash-lite", "openai/gpt-oss-20b"]
+const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini", "openai/gpt-oss-120b"]
 const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022"]
 
 function getAllowedModels(planSlug: string): string[] {
@@ -32,7 +32,7 @@ function getAllowedModels(planSlug: string): string[] {
 
 function getRequiredPlan(modelId: string): string | null {
   if (["gpt-4o", "claude-3-5-sonnet-20241022"].includes(modelId)) return "Pro"
-  if (["gpt-4o-mini"].includes(modelId)) return "Starter"
+  if (["gpt-4o-mini", "openai/gpt-oss-120b"].includes(modelId)) return "Starter"
   return null
 }
 
@@ -113,6 +113,13 @@ export default function ModelSelector({ projectId, currentModel, planSlug = "fre
               )
             })}
             {planSlug === "free" && (
+              <div className="px-3 py-2 border-t mt-1">
+                <a href="/pricing" className="text-xs text-primary hover:underline">
+                  Upgrade to unlock GPT-4o & Claude →
+                </a>
+              </div>
+            )}
+            {planSlug === "starter" && (
               <div className="px-3 py-2 border-t mt-1">
                 <a href="/pricing" className="text-xs text-primary hover:underline">
                   Upgrade to unlock GPT-4o & Claude →
