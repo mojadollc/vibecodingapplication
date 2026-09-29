@@ -2,6 +2,8 @@ import { prisma } from "@mojadoo/database"
 import { format } from "date-fns"
 import AdminUserActions from "@/components/admin/AdminUserActions"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminUsersPage() {
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },

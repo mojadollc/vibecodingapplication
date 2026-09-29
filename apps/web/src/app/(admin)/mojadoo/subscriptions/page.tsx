@@ -1,6 +1,8 @@
 import { prisma } from "@mojadoo/database"
 import { format } from "date-fns"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminSubscriptionsPage() {
   const subscriptions = await prisma.subscription.findMany({
     orderBy: { createdAt: "desc" },

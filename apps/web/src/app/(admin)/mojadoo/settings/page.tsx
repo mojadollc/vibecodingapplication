@@ -1,6 +1,8 @@
 import { prisma } from "@mojadoo/database"
 import SettingsManager from "@/components/admin/SettingsManager"
 
+export const dynamic = "force-dynamic"
+
 const DEFAULTS: Record<string, string> = {
   site_name: "Mojadoo",
   site_tagline: "Build apps with AI",

@@ -1,6 +1,8 @@
 import { prisma } from "@mojadoo/database"
 import ModelsManager from "@/components/admin/ModelsManager"
 
+export const dynamic = "force-dynamic"
+
 const DEFAULT_MODELS = [
   { modelId: "gpt-4o", label: "GPT-4o", provider: "OpenAI", isFast: false, sortOrder: 0 },
   { modelId: "gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", isFast: true, sortOrder: 1 },

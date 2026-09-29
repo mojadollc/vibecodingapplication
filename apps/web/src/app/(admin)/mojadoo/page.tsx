@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@mojadoo/database"
 import { Users, CreditCard, Zap, TrendingUp, FolderOpen, Rocket } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminPage() {
   const [
     totalUsers,

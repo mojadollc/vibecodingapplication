@@ -1,6 +1,8 @@
 import { prisma } from "@mojadoo/database"
 import { format } from "date-fns"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminUsagePage() {
   const [tasks, topUsers] = await Promise.all([
     prisma.aiTask.findMany({
