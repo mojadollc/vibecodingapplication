@@ -2,16 +2,17 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, CreditCard, DollarSign, Zap, Settings, ChevronLeft } from "lucide-react"
+import { LayoutDashboard, Users, CreditCard, DollarSign, Zap, Settings, ChevronLeft, KeyRound } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
-  { href: "/admin/payments", label: "Payments", icon: DollarSign },
-  { href: "/admin/plans", label: "Plans", icon: Settings },
-  { href: "/admin/usage", label: "AI Usage", icon: Zap },
+  { href: "/mojadoo", label: "Overview", icon: LayoutDashboard },
+  { href: "/mojadoo/users", label: "Users", icon: Users },
+  { href: "/mojadoo/subscriptions", label: "Subscriptions", icon: CreditCard },
+  { href: "/mojadoo/payments", label: "Payments", icon: DollarSign },
+  { href: "/mojadoo/plans", label: "Plans", icon: Settings },
+  { href: "/mojadoo/usage", label: "AI Usage", icon: Zap },
+  { href: "/mojadoo/credentials", label: "Credentials", icon: KeyRound },
 ]
 
 export default function AdminSidebar() {
@@ -22,7 +23,7 @@ export default function AdminSidebar() {
       <div className="p-4 border-b">
         <div className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-primary" />
-          <span className="font-bold text-sm">Admin</span>
+          <span className="font-bold text-sm">Mojadoo</span>
         </div>
       </div>
 

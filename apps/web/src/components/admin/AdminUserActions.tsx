@@ -14,7 +14,7 @@ export default function AdminUserActions({ userId, currentRole }: Props) {
   const router = useRouter()
 
   async function patch(body: object) {
-    await fetch("/api/admin/users", {
+    await fetch("/api/mojadoo/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, ...body }),

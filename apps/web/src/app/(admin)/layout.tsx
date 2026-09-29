@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@mojadoo/database"
 import AdminSidebar from "@/components/admin/AdminSidebar"
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function MojadooLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: headers() })
   if (!session) redirect("/login")
 

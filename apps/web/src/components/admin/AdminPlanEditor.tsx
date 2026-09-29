@@ -18,7 +18,7 @@ export default function AdminPlanEditor({ plans }: Props) {
 
   async function savePlan(planId: string) {
     setSaving(planId)
-    await fetch("/api/admin/plans", {
+    await fetch("/api/mojadoo/plans", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ planId, ...edits[planId] }),
