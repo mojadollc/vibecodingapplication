@@ -16,7 +16,7 @@ interface Props {
   planSlug?: string
 }
 
-const FREE_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "gemini-3.8-flash", "gemini-3.8-flash-lite", "gemini-3.8-pro", "gemini-3-flash-preview", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+const FREE_MODELS = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3-flash-preview", "openai/gpt-oss-20b"]
 const STARTER_MODELS = [...FREE_MODELS, "gpt-4o-mini", "openai/gpt-oss-120b"]
 const PRO_MODELS = [...STARTER_MODELS, "gpt-4o", "claude-3-5-sonnet-20241022"]
 

@@ -6,7 +6,7 @@ const headers = {
   "x-orchestrator-secret": ORCHESTRATOR_SECRET,
 }
 
-export async function startAgentTask(projectId: string, prompt: string, conversationId: string, model = "openai/gpt-oss-20b") {
+export async function startAgentTask(projectId: string, prompt: string, conversationId: string, model = "gemini-3.5-flash") {
   const res = await fetch(`${ORCHESTRATOR_URL}/run`, {
     method: "POST",
     headers,
