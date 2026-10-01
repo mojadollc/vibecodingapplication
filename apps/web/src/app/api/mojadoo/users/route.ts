@@ -23,6 +23,7 @@ const patchSchema = z.object({
   userId: z.string(),
   role: z.enum(["USER", "ADMIN"]).optional(),
   addCredits: z.number().int().positive().optional(),
+  planId: z.string().optional(),
 })
 
 export async function PATCH(req: NextRequest) {
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest) {
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { userId, role, addCredits } = parsed.data
+  const { userId, role, addCredits, planId } = parsed.data
 
   if (role) {
     await prisma.user.update({ where: { id: userId }, data: { role } })
@@ -54,6 +55,32 @@ export async function PATCH(req: NextRequest) {
         description: "Admin credit grant",
       },
     })
+  }
+
+  if (planId) {
+    // "free" is a special slug meaning cancel all paid subscriptions
+    if (planId === "free") {
+      await prisma.subscription.updateMany({
+        where: { userId, status: "ACTIVE" },
+        data: { status: "CANCELLED" },
+      })
+    } else {
+      const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } })
+      if (!plan) return NextResponse.json({ error: "Plan not found" }, { status: 404 })
+      await prisma.subscription.updateMany({
+        where: { userId, status: "ACTIVE" },
+        data: { status: "CANCELLED" },
+      })
+      await prisma.subscription.create({
+        data: {
+          userId,
+          planId,
+          status: "ACTIVE",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+      })
+    }
   }
 
   return NextResponse.json({ data: { ok: true } })
