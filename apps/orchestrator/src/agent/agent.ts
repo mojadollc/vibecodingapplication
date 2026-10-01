@@ -8,6 +8,7 @@ import { gitCommit, gitInit } from "../tools/git.js"
 import { prisma } from "@mojadoo/database"
 
 const MAX_ITERATIONS = 40
+const MAX_RETRIES = 3
 
 export interface AgentStep {
   type: "thinking" | "tool_call" | "tool_result" | "error" | "done"
@@ -28,23 +29,103 @@ export const PLAN_DEFAULT_MODELS: Record<string, string> = {
   agency: "gpt-4o",
 }
 
-const FILE_WRITING_MODEL: Record<string, string> = {
-  "gpt-4o": "gemini-3.5-flash",
-  "claude-3-5-sonnet-20241022": "gemini-3.5-flash",
-  "gpt-4o-mini": "gpt-4o-mini",
-  "gemini-3-flash-preview": "gemini-3-flash-preview",
-  "gemini-3.5-flash": "gemini-3.5-flash",
-  "gemini-3.5-flash-lite": "gemini-3.5-flash-lite",
-  "openai/gpt-oss-20b": "openai/gpt-oss-20b",
-  "openai/gpt-oss-120b": "gemini-3.5-flash",
-}
-
 function getProvider(model: string): string {
   if (model.startsWith("gpt-")) return "openai"
   if (model.startsWith("gemini-")) return "gemini"
   if (model.startsWith("claude-")) return "anthropic"
   if (model.startsWith("openai/gpt-oss") || ["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"].includes(model)) return "groq"
   return "openai"
+}
+
+// Scaffold file paths — agent doesn't need to read these, we return cached content
+const SCAFFOLD_PATHS = new Set(Object.keys(BASE_SCAFFOLD))
+
+// Fallback chain: if primary provider hits rate limit, try these
+const FALLBACK_MODELS: Record<string, string[]> = {
+  gemini: ["openai/gpt-oss-20b", "gemini-3.5-flash-lite"],
+  groq:   ["gemini-3.5-flash", "gemini-3.5-flash-lite"],
+  openai: ["gemini-3.5-flash"],
+}
+
+function getRetryAfter(err: any): number {
+  // OpenAI SDK surfaces status directly on the error object
+  const headers = err?.headers ?? err?.response?.headers ?? {}
+  const val = parseFloat(headers["retry-after"] ?? headers["x-ratelimit-reset-requests"] ?? "")
+  return isNaN(val) ? 10 : val
+}
+
+function getStatus(err: any): number {
+  return err?.status ?? err?.response?.status ?? 0
+}
+
+function getErrDetail(err: any): string {
+  const status = getStatus(err)
+  const body = err?.error ?? {}
+  return [
+    `status=${status}`,
+    body?.code   ? `code=${body.code}`     : "",
+    body?.message ? `msg=${body.message}`  : (err?.message ?? ""),
+  ].filter(Boolean).join(" | ")
+}
+
+async function callWithRetry(
+  fn: () => Promise<any>,
+  provider: string,
+  model: string
+): Promise<any> {
+  let lastErr: any
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      lastErr = err
+      const status = getStatus(err)
+      if (status === 429 || status === 503) {
+        const retryAfter = getRetryAfter(err)
+        // exponential backoff: 10s, 20s, 40s
+        const wait = retryAfter * Math.pow(2, attempt - 1) * 1000
+        console.warn(`[${provider}/${model}] ${status} attempt=${attempt}/${MAX_RETRIES} ${getErrDetail(err)} — waiting ${wait / 1000}s`)
+        await new Promise((r) => setTimeout(r, wait))
+      } else {
+        throw err
+      }
+    }
+  }
+  throw new Error(`[${provider}/${model}] failed after ${MAX_RETRIES} retries: ${getErrDetail(lastErr)}`)
+}
+
+async function callWithFallback(
+  messages: ChatCompletionMessageParam[],
+  provider: string,
+  model: string,
+  client: OpenAI
+): Promise<{ response: any; usedModel: string }> {
+  try {
+    const response = await callWithRetry(
+      () => client.chat.completions.create({ model, messages, tools, tool_choice: "auto" }),
+      provider,
+      model
+    )
+    return { response, usedModel: model }
+  } catch (primaryErr: any) {
+    const fallbacks = FALLBACK_MODELS[provider] ?? []
+    for (const fallbackModel of fallbacks) {
+      const fallbackProvider = getProvider(fallbackModel)
+      const fallbackClient = buildClient(fallbackProvider)
+      console.warn(`[${provider}/${model}] down, trying fallback ${fallbackProvider}/${fallbackModel}`)
+      try {
+        const response = await callWithRetry(
+          () => fallbackClient.chat.completions.create({ model: fallbackModel, messages, tools, tool_choice: "auto" }),
+          fallbackProvider,
+          fallbackModel
+        )
+        return { response, usedModel: fallbackModel }
+      } catch {
+        // try next fallback
+      }
+    }
+    throw primaryErr
+  }
 }
 
 function buildClient(provider: string): OpenAI {
@@ -107,15 +188,10 @@ export async function runAgent(
   const primaryProvider = getProvider(model)
   const primaryClient = buildClient(primaryProvider)
 
-  // Secondary client for file writing (cheaper model to save costs)
-  const fileWriteModel = FILE_WRITING_MODEL[model] ?? model
-  const fileWriteProvider = getProvider(fileWriteModel)
-  const fileWriteClient = fileWriteModel !== model ? buildClient(fileWriteProvider) : primaryClient
-
-  // Groq has strict TPM limits — use short prompt and minimal history
+  // Use short prompt for ALL providers to reduce token usage
   const isGroq = primaryProvider === "groq"
-  const systemPrompt = isGroq ? SYSTEM_PROMPT_SHORT : SYSTEM_PROMPT
-  const MAX_PREV_MESSAGES = isGroq ? 2 : 10
+  const systemPrompt = SYSTEM_PROMPT_SHORT
+  const MAX_PREV_MESSAGES = isGroq ? 2 : 4
 
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
@@ -123,12 +199,14 @@ export async function runAgent(
       role: m.role as "user" | "assistant",
       content: m.content,
     })),
-    { role: "user", content: prompt },
+    { role: "user", content: isNewProject
+      ? `${prompt}\n\n[Scaffold already created: package.json, tailwind.config.js, postcss.config.js, next.config.js, tsconfig.json, src/app/globals.css, src/app/layout.tsx, src/lib/utils.ts. Dependencies installed. Start writing feature files immediately.]`
+      : prompt
+    },
   ]
 
   let iterations = 0
   let finalSummary = ""
-  let fileWriteCount = 0
 
   while (iterations < MAX_ITERATIONS) {
     iterations++
@@ -138,18 +216,18 @@ export async function runAgent(
 
     let response
     try {
-      response = await primaryClient.chat.completions.create({
-        model,
-        messages,
-        tools,
-        tool_choice: "auto",
-      })
+      const result = await callWithFallback(messages, primaryProvider, model, primaryClient)
+      response = result.response
+      if (result.usedModel !== model) {
+        onStep({ type: "thinking", message: `Switched to fallback model: ${result.usedModel}` })
+      }
     } catch (err: any) {
       const errMsg = err?.message ?? String(err)
-      onStep({ type: "error", message: `AI API error: ${errMsg}` })
+      const label = `[${primaryProvider}/${model}] AI error: ${errMsg}`
+      onStep({ type: "error", message: label })
       await prisma.aiTask.update({
         where: { id: taskId },
-        data: { status: "FAILED", error: `AI API error: ${errMsg}` },
+        data: { status: "FAILED", error: label },
       })
       return `Failed: ${errMsg}`
     }
@@ -174,41 +252,20 @@ export async function runAgent(
           const shortPath = args.path.split("/").slice(-2).join("/")
           onStep({ type: "tool_call", message: `Writing ${shortPath}`, tool: fnName })
 
-          let fileContent = args.content
-          if (fileWriteModel !== model && fileWriteCount < 20) {
-            fileWriteCount++
-            try {
-              const writeResponse = await fileWriteClient.chat.completions.create({
-                model: fileWriteModel,
-                messages: [
-                  { role: "system", content: SYSTEM_PROMPT },
-                  {
-                    role: "user",
-                    content: `Write the complete content for file: ${args.path}\n\nContext: ${prompt}\n\nRequirements: Follow the design system exactly. Return ONLY the file content, no explanation.`,
-                  },
-                ],
-              })
-              const generated = writeResponse.choices[0]?.message?.content
-              if (generated && generated.length > 50) {
-                fileContent = generated.replace(/^```[\w]*\n?/, "").replace(/\n?```$/, "")
-              }
-            } catch {
-              // fallback to original content from primary model
-            }
-          }
-
-          await createFile(projectId, args.path, fileContent)
+          await createFile(projectId, args.path, args.content)
           await prisma.projectFile.upsert({
             where: { projectId_path: { projectId, path: args.path } },
-            update: { content: fileContent },
-            create: { projectId, path: args.path, content: fileContent },
+            update: { content: args.content },
+            create: { projectId, path: args.path, content: args.content },
           })
           result = `Created ${args.path}`
           onStep({ type: "tool_result", message: `✓ ${shortPath}`, tool: fnName })
 
         } else if (fnName === "read_file") {
           onStep({ type: "tool_call", message: `Reading ${args.path.split("/").slice(-1)[0]}`, tool: fnName })
-          result = await readFile(projectId, args.path)
+          // Return cached scaffold content to avoid wasting tokens re-reading known files
+          const cached = BASE_SCAFFOLD[args.path as keyof typeof BASE_SCAFFOLD]
+          result = cached ?? await readFile(projectId, args.path)
           onStep({ type: "tool_result", message: `Read ${args.path.split("/").slice(-1)[0]}`, tool: fnName })
 
         } else if (fnName === "list_files") {
