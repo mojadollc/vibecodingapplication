@@ -60,6 +60,7 @@ export default async function AdminUsersPage() {
                       userId={u.id}
                       currentRole={u.role}
                       currentPlanId={activeSub?.plan.id ?? null}
+                      currentPlanSlug={activeSub?.plan.slug ?? null}
                       plans={plans}
                     />
                   </td>

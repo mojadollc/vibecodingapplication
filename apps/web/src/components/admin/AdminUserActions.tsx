@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, Coins, Loader2, CreditCard, ChevronDown, Check } from "lucide-react"
+import { createPortal } from "react-dom"
 
 interface Plan {
   id: string
@@ -14,13 +15,35 @@ interface Props {
   userId: string
   currentRole: string
   currentPlanId: string | null
+  currentPlanSlug: string | null
   plans: Plan[]
 }
 
-export default function AdminUserActions({ userId, currentRole, currentPlanId, plans }: Props) {
+export default function AdminUserActions({ userId, currentRole, currentPlanId, currentPlanSlug, plans }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
   const [planOpen, setPlanOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    if (!planOpen) return
+    function handleClick(e: MouseEvent) {
+      if (btnRef.current && !btnRef.current.contains(e.target as Node)) {
+        setPlanOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [planOpen])
+
+  function openDropdown() {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX })
+    }
+    setPlanOpen(!planOpen)
+  }
 
   async function patch(body: object) {
     await fetch("/api/mojadoo/users", {
@@ -56,50 +79,46 @@ export default function AdminUserActions({ userId, currentRole, currentPlanId, p
 
   const currentPlan = plans.find((p) => p.id === currentPlanId)
 
+  const dropdown = planOpen ? createPortal(
+    <div
+      style={{ position: "absolute", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+      className="bg-white dark:bg-zinc-900 border rounded-lg shadow-xl w-40 py-1"
+    >
+      {plans.map((plan) => (
+        <button
+          key={plan.id}
+          onClick={() => switchPlan(plan.slug === "free" ? "free" : plan.id)}
+          className="flex items-center justify-between w-full px-3 py-2 text-xs hover:bg-muted text-left"
+        >
+          {plan.name}
+          {(plan.slug === "free" ? !currentPlanId : currentPlanId === plan.id) && (
+            <Check className="w-3 h-3 text-primary" />
+          )}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null
+
   return (
     <div className="flex items-center gap-1">
       {/* Plan switcher */}
-      <div className="relative">
-        <button
-          onClick={() => setPlanOpen(!planOpen)}
-          disabled={loading === "plan"}
-          title="Switch plan"
-          className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 border"
-        >
-          {loading === "plan" ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            <CreditCard className="w-3 h-3" />
-          )}
-          <span>{currentPlan?.name ?? "Free"}</span>
-          <ChevronDown className="w-3 h-3" />
-        </button>
-        {planOpen && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setPlanOpen(false)} />
-            <div className="absolute right-0 top-full mt-1 z-20 bg-card border rounded-lg shadow-lg w-36 py-1">
-              {/* Free option */}
-              <button
-                onClick={() => switchPlan("free")}
-                className="flex items-center justify-between w-full px-3 py-1.5 text-xs hover:bg-muted text-left"
-              >
-                Free
-                {!currentPlanId && <Check className="w-3 h-3 text-primary" />}
-              </button>
-              {plans.filter(p => p.slug !== "free").map((plan) => (
-                <button
-                  key={plan.id}
-                  onClick={() => switchPlan(plan.id)}
-                  className="flex items-center justify-between w-full px-3 py-1.5 text-xs hover:bg-muted text-left"
-                >
-                  {plan.name}
-                  {currentPlanId === plan.id && <Check className="w-3 h-3 text-primary" />}
-                </button>
-              ))}
-            </div>
-          </>
+      <button
+        ref={btnRef}
+        onClick={openDropdown}
+        disabled={loading === "plan"}
+        title="Switch plan"
+        className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 border"
+      >
+        {loading === "plan" ? (
+          <Loader2 className="w-3 h-3 animate-spin" />
+        ) : (
+          <CreditCard className="w-3 h-3" />
         )}
-      </div>
+        <span>{currentPlan?.name ?? "Free"}</span>
+        <ChevronDown className="w-3 h-3" />
+      </button>
+      {dropdown}
 
       {/* Role toggle */}
       <button
